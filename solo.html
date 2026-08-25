@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>スタート0.15 予想バトル ／ BOAT RACE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#02090f; --cyan:#2fe4ff; --cyan-d:#0bb7e6; --blue:#1f6fe8;
+    --orange:#ff6a1a; --orange-l:#ffa24d; --gold:#ffd24a; --mag:#ff2d78; --red:#ff3b4e; --green:#25d17a;
+    --ink:#eaf6ff; --muted:#7fa6c2; --line:rgba(120,200,240,.16);
+    --disp:'Anton','Hiragino Sans','Yu Gothic',sans-serif;
+    --lab:'Oswald','Hiragino Sans',sans-serif;
+    --jp:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",sans-serif;
+    --k1:#ffffff; --k1t:#0e2b42; --k2:#1b1f26; --k2t:#fff; --k3:#ff2b3e; --k3t:#fff;
+    --k4:#1f7bff; --k4t:#fff; --k5:#ffd21e; --k5t:#1a1a1a; --k6:#15b45f; --k6t:#fff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:var(--jp); color:var(--ink); user-select:none; -webkit-font-smoothing:antialiased; background:var(--bg0); overflow-x:hidden;}
+  .scene{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+  .glow{position:absolute; border-radius:50%; filter:blur(70px);}
+  .g-teal{width:130vw;height:80vh; left:-15vw; top:-34vh; background:radial-gradient(circle,#0d6f88,rgba(13,111,136,0) 62%); opacity:.85;}
+  .g-orange{width:90vw;height:65vh; right:-25vw; bottom:-30vh; background:radial-gradient(circle,#c2481a,rgba(194,72,26,0) 60%); opacity:.5;}
+  .waves{position:absolute; left:-10%; right:-10%; bottom:-4%; height:60%; opacity:.5;}
+  .waves svg{width:120%; height:100%;}
+  .wln{fill:none; stroke:var(--cyan); stroke-width:1.6; opacity:.30; animation:drift 6s ease-in-out infinite;}
+  .wln:nth-child(2){opacity:.19; animation-duration:8s; animation-delay:-2s; stroke:#4fd0ff;}
+  @keyframes drift{0%,100%{transform:translate(0,0)}25%{transform:translate(-4%,6px)}50%{transform:translate(-8%,0)}75%{transform:translate(-4%,-6px)}}
+  .vignette{position:absolute; inset:0; box-shadow:inset 0 0 240px rgba(0,0,0,.85);}
+
+  .brand{position:fixed; top:12px; left:0; right:0; z-index:5; display:flex; align-items:center; justify-content:center; gap:9px; font-family:var(--lab); font-weight:700; letter-spacing:.2em; color:var(--muted); font-size:11px; text-transform:uppercase;}
+  .brand .live{display:inline-flex; align-items:center; gap:6px; color:var(--orange);}
+  .brand .live::before{content:""; width:8px;height:8px;border-radius:50%;background:var(--orange); box-shadow:0 0 12px var(--orange); animation:blink 1.3s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .mute{position:fixed; top:9px; right:14px; z-index:9; width:38px;height:38px;border-radius:50%; border:1px solid var(--line); background:rgba(255,255,255,.07); color:var(--ink); font-size:16px; cursor:pointer;}
+
+  .wrap{position:relative; z-index:2; min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:56px 14px 46px; text-align:center;}
+  .screen{width:100%; max-width:760px; display:none; animation:pop .4s cubic-bezier(.2,.8,.3,1) both;}
+  .screen.on{display:block;}
+  @keyframes pop{from{opacity:0; transform:translateY(12px)} to{opacity:1}}
+
+  .kicker{font-family:var(--lab); font-weight:700; letter-spacing:.3em; text-transform:uppercase; font-size:12px; color:transparent; background:linear-gradient(90deg,var(--cyan),var(--gold)); -webkit-background-clip:text; background-clip:text;}
+  .title{font-family:var(--jp); font-weight:900; font-style:italic; line-height:1; font-size:clamp(32px,8vw,58px); background:linear-gradient(180deg,#fff,#d6efff 45%,#8fd6ff); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 6px 30px rgba(47,228,255,.28);}
+  .title .accent{background:linear-gradient(180deg,var(--gold),var(--orange)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .en{font-family:var(--disp);}
+  .lead{margin-top:14px; color:#b9d6ea; font-size:15px; line-height:1.9;}
+  .lead b{color:var(--gold);}
+  .dots{display:flex; gap:8px; justify-content:center; margin:14px 0 2px;}
+  .dots i{width:15px;height:15px;border-radius:5px; transform:skewX(-8deg); box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.4);}
+  .steps{margin:16px auto 0; max-width:520px; text-align:left; display:grid; gap:8px;}
+  .steps li{list-style:none; display:flex; gap:12px; align-items:center; color:#cfe8f7; font-size:14px; line-height:1.45; background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.01)); border:1px solid var(--line); border-left:3px solid var(--cyan); border-radius:10px; padding:10px 12px;}
+  .steps li .i{flex:none; font-family:var(--disp); color:var(--cyan); font-size:18px; width:20px; text-align:center;}
+  .steps li b{color:var(--gold);}
+
+  .btn{position:relative; margin-top:16px; display:inline-flex; align-items:center; justify-content:center; gap:10px; width:100%; max-width:400px; padding:16px 26px; border:none; border-radius:14px; cursor:pointer; overflow:hidden; font-family:var(--jp); font-weight:900; font-style:italic; font-size:18px; letter-spacing:.04em; color:#04202f; background:linear-gradient(180deg,#5cecff,var(--cyan) 42%,var(--cyan-d)); box-shadow:0 12px 30px rgba(47,228,255,.35), inset 0 1px 0 rgba(255,255,255,.7); transition:transform .08s;}
+  .btn::after{content:""; position:absolute; top:0; left:-60%; width:40%; height:100%; transform:skewX(-20deg); background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:shine 3.4s ease-in-out infinite;}
+  @keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.orange{color:#3a1500; background:linear-gradient(180deg,#ffc079,var(--orange-l) 40%,var(--orange)); box-shadow:0 12px 30px rgba(255,106,26,.4), inset 0 1px 0 rgba(255,255,255,.6);}
+  .btn.ghost{color:var(--ink); background:rgba(255,255,255,.05); border:1px solid var(--line); box-shadow:none; max-width:240px; font-size:15px; font-style:normal;}
+  .btn.ghost::after{display:none;}
+  .btn.big{max-width:520px; font-size:20px; padding:18px;}
+  .btnrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px;}
+  .btnrow .btn{margin-top:0; width:auto; min-width:150px;}
+
+  /* setup */
+  .setup-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;}
+  @media(max-width:560px){ .setup-grid{grid-template-columns:1fr;} }
+  .fld{display:flex; align-items:center; gap:11px; background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:12px; padding:8px 10px;}
+  .kwsq{flex:none; width:36px;height:36px; border-radius:9px; display:grid; place-items:center; font-family:var(--disp); font-size:19px; transform:skewX(-7deg); background:linear-gradient(155deg,rgba(255,255,255,.55),rgba(255,255,255,0) 46%), var(--bc); box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 3px 8px rgba(0,0,0,.4);}
+  .kwsq span{transform:skewX(7deg); color:var(--bt);}
+  .fld input{flex:1; background:transparent; border:none; color:#fff; font-size:16px; outline:none;}
+
+  /* ODDS / STANDINGS BOARD */
+  .board{position:relative; margin-top:14px; border-radius:18px; text-align:left; overflow:hidden; background:linear-gradient(180deg,rgba(9,38,60,.92),rgba(4,20,33,.94)); border:1px solid rgba(120,200,240,.22); box-shadow:0 26px 60px rgba(0,0,0,.5);}
+  .bhead{display:flex; align-items:center; justify-content:space-between; padding:12px 15px; background:linear-gradient(180deg,#123a5c,#0b2337); border-bottom:1px solid var(--line);}
+  .bhead .venue{display:flex; align-items:center; gap:9px; font-family:var(--lab); font-weight:700; letter-spacing:.14em; font-size:13px; text-transform:uppercase; color:#dcefff;}
+  .bhead .venue .rc{width:9px;height:9px;border-radius:50%; background:var(--orange); box-shadow:0 0 10px var(--orange); animation:blink 1.3s infinite;}
+  .bhead .rno{font-family:var(--disp); color:#2a1400; font-size:15px; padding:4px 12px; border-radius:7px; transform:skewX(-8deg); background:linear-gradient(180deg,var(--gold),#f0a92e);}
+  .bhead .rno span{display:inline-block; transform:skewX(8deg);}
+  .colhead{display:grid; grid-template-columns:56px 1fr 82px 92px; padding:7px 15px; font-family:var(--lab); font-size:11px; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; border-bottom:1px solid var(--line); background:rgba(0,0,0,.2);}
+  .colhead span:nth-child(3),.colhead span:nth-child(4){text-align:center}
+  @media(max-width:520px){ .colhead{grid-template-columns:46px 1fr 60px 82px;} }
+  .brow{position:relative; display:grid; grid-template-columns:56px 1fr 82px 92px; align-items:center; padding:11px 15px; cursor:pointer; border-bottom:1px solid rgba(120,200,240,.09); transition:background .14s, transform .08s;}
+  .brow::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--bc); box-shadow:0 0 12px var(--bc);}
+  @media(max-width:520px){ .brow{grid-template-columns:46px 1fr 60px 82px; padding:10px 12px;} }
+  .brow:last-child{border-bottom:none;}
+  .brow:active{transform:scale(.996);}
+  .kw{width:44px;height:44px; border-radius:11px; display:grid; place-items:center; font-family:var(--disp); font-size:23px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%), var(--bc); box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 4px 11px rgba(0,0,0,.45), 0 0 16px -4px var(--bc);}
+  .kw span{transform:skewX(8deg); color:var(--bt); line-height:1;}
+  @media(max-width:520px){ .kw{width:38px;height:38px;font-size:20px;} }
+  .binfo{min-width:0; padding-left:13px;}
+  .binfo .nm{display:flex; align-items:center; gap:8px; font-size:clamp(15px,3.4vw,19px); font-weight:900; white-space:nowrap; overflow:hidden;}
+  .binfo .nm .txt{overflow:hidden; text-overflow:ellipsis;}
+  .binfo .sub2{display:flex; align-items:center; gap:9px; margin-top:6px;}
+  .binfo .vv{font-family:var(--lab); font-size:12px; color:var(--muted); font-weight:600; flex:none; min-width:40px;}
+  .lane{position:relative; flex:1; height:22px; border-radius:5px; background:linear-gradient(180deg,#0a3a54,#072536); box-shadow:inset 0 2px 4px rgba(0,0,0,.45);}
+  .lane .trail{position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:5px 0 0 5px; transition:width .4s cubic-bezier(.2,.8,.3,1); background:linear-gradient(90deg,color-mix(in srgb,var(--bc) 28%,transparent),color-mix(in srgb,var(--bc) 66%,transparent)); box-shadow:0 0 10px -2px var(--bc);}
+  .lane .boaticon{position:absolute; top:50%; left:0%; width:50px; height:auto; transform:translate(-74%,-50%); transition:left .4s cubic-bezier(.2,.8,.3,1); filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); z-index:2;}
+  .lane .tmark{position:absolute; right:4px; top:50%; transform:translateY(-56%); width:13px; height:auto; z-index:1;}
+  .tag{flex:none; font-family:var(--lab); font-size:10px; font-weight:700; color:#3a2800; background:linear-gradient(180deg,var(--gold),#f0a92e); padding:2px 8px; border-radius:6px; transform:skewX(-8deg); display:none;}
+  .tag span{display:inline-block; transform:skewX(8deg);}
+  .brow.fav .tag{display:inline-block;}
+  .odds{text-align:center; font-family:var(--disp); font-variant-numeric:tabular-nums; font-size:clamp(19px,4.6vw,25px); background:linear-gradient(180deg,#fff,#bfe6ff); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .odds .x{font-family:var(--lab); font-weight:700; font-size:.5em; color:var(--muted); -webkit-text-fill-color:var(--muted);}
+  .brow.fav .odds{background:linear-gradient(180deg,#fff2c4,var(--gold)); -webkit-background-clip:text; background-clip:text;}
+  .st{text-align:center; font-family:var(--disp); font-variant-numeric:tabular-nums; font-size:clamp(19px,4.6vw,26px); color:#fff;}
+  .st.foul{color:var(--red);}
+  .st.pending{color:var(--muted); font-size:15px; font-family:var(--lab);}
+  .ctl{display:flex; gap:6px; justify-content:flex-end;}
+  .ctl button{width:40px;height:40px; border:none; border-radius:11px; font-size:22px; font-weight:900; cursor:pointer; color:#fff; background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08));}
+  .ctl button.minus{background:linear-gradient(180deg,rgba(0,0,0,.32),rgba(0,0,0,.18));}
+  @media(max-width:520px){ .ctl button{width:34px;height:34px;font-size:19px;} }
+  .brow.win{background:linear-gradient(90deg,rgba(255,210,74,.2),rgba(255,210,74,.04)); box-shadow:inset 0 0 0 2px var(--gold);}
+  .brow.rank1 .rankbadge{background:linear-gradient(180deg,#fff2c4,var(--gold)); color:#3a2800;}
+  .rankbadge{position:absolute; left:40px; top:6px; font-family:var(--disp); font-size:11px; padding:1px 7px; border-radius:6px; background:rgba(255,255,255,.15); color:#fff; transform:skewX(-8deg); display:none;}
+  .board.standings .rankbadge{display:block;}
+  .totline{margin-top:14px; color:var(--muted); font-size:14px; text-align:center; font-family:var(--lab); letter-spacing:.06em;}
+  .totline b{color:#fff; font-family:var(--disp); font-size:19px; margin:0 2px;}
+  .qtext{margin:4px auto 0; font-family:var(--jp); font-weight:900; font-size:clamp(17px,3.6vw,23px);}
+
+  /* CHALLENGE (大時計) */
+  .chalhead{font-family:var(--jp); font-weight:900; font-style:italic; font-size:clamp(20px,5vw,30px); margin-bottom:6px;}
+  .chalhead .kwmini{display:inline-grid; place-items:center; width:34px;height:34px;border-radius:8px; font-family:var(--disp); font-size:18px; vertical-align:middle; margin-right:8px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc);}
+  .chalhead .kwmini span{transform:skewX(8deg); color:var(--bt);}
+  .stage{position:relative; width:100%; max-width:360px; aspect-ratio:1/1; margin:6px auto 0;}
+  .clock{position:absolute; inset:0; filter:drop-shadow(0 12px 40px rgba(0,0,0,.5)); transition:opacity .2s;}
+  .clock.gone{opacity:0;}
+  .cdnum{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--disp); font-size:clamp(88px,26vw,150px); line-height:1; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 26px rgba(47,228,255,.5));}
+  .cdnum.hide{opacity:0; transition:opacity .18s;}
+  .blindmsg{position:absolute; inset:0; display:none; place-items:center; align-content:center;}
+  .blindmsg.on{display:grid;}
+  .blindmsg .big{font-family:var(--jp); font-style:italic; font-size:clamp(26px,7vw,38px); font-weight:900; color:transparent; background:linear-gradient(180deg,#fff2c4,var(--gold)); -webkit-background-clip:text; background-clip:text; animation:pulseB 1s ease-in-out infinite;}
+  .blindmsg .small{margin-top:6px; color:var(--muted); font-family:var(--lab); letter-spacing:.24em; font-size:12px;}
+  @keyframes pulseB{0%,100%{opacity:.55}50%{opacity:1}}
+  .go{position:relative; margin:18px auto 0; display:block; width:min(88vw,420px); height:96px; border:none; border-radius:20px; cursor:pointer; overflow:hidden; font-family:var(--disp); font-size:34px; letter-spacing:.12em; color:#3a1500; background:linear-gradient(180deg,#ffc079,var(--orange-l) 42%,var(--orange)); box-shadow:0 14px 36px rgba(255,106,26,.45), inset 0 2px 0 rgba(255,255,255,.6);}
+  .go:active{transform:translateY(3px) scale(.99);}
+  .go[disabled]{filter:grayscale(.6) brightness(.7); pointer-events:none;}
+  .hint{margin-top:10px; color:var(--muted); font-family:var(--lab); letter-spacing:.14em; font-size:12px;}
+  /* challenge inline result */
+  .chalres{margin-top:14px; display:none;}
+  .chalres.on{display:block; animation:pop .3s ease both;}
+  .chalres .v{font-family:var(--jp); font-style:italic; font-weight:900; font-size:clamp(22px,5vw,32px);}
+  .chalres .stbig{font-family:var(--disp); font-size:clamp(48px,14vw,86px); line-height:1; color:#fff;}
+  .chalres .stbig .s{font-family:var(--jp); font-size:.28em; color:var(--muted); font-style:italic;}
+
+  /* payout */
+  .qhead{font-family:var(--lab); font-weight:700; letter-spacing:.26em; text-transform:uppercase; font-size:13px; text-align:center; color:transparent; background:linear-gradient(90deg,var(--cyan),var(--gold)); -webkit-background-clip:text; background-clip:text;}
+  .paywin{font-family:var(--jp); font-weight:900; font-style:italic; font-size:clamp(26px,6.5vw,46px); text-align:center; margin-top:8px; display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .paymul{margin-top:6px; font-family:var(--disp); font-size:clamp(64px,18vw,120px); line-height:.9; text-align:center; background:linear-gradient(180deg,#fff6d6,var(--gold) 45%,#e89b1c); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 8px 26px rgba(255,210,74,.4));}
+  .paymul small{font-family:var(--jp); font-style:italic; font-size:.24em; -webkit-text-fill-color:var(--muted); font-weight:900;}
+  .paynote{margin-top:12px; color:#d7ecf8; font-size:15px; line-height:1.8; text-align:center;}
+  .paynote b{color:var(--gold);}
+  .winbadge{display:inline-grid; place-items:center; width:42px;height:42px;border-radius:10px; font-family:var(--disp); font-size:22px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc);}
+  .winbadge span{transform:skewX(8deg); color:var(--bt);}
+
+  .flash{position:fixed; inset:0; z-index:4; pointer-events:none; opacity:0;}
+  .flash.f{background:radial-gradient(circle at 50% 45%, rgba(255,59,78,.5), rgba(255,59,78,0) 60%); animation:flashA .5s ease;}
+  .flash.p{background:radial-gradient(circle at 50% 45%, rgba(255,210,74,.5), rgba(255,210,74,0) 60%); animation:flashA .6s ease;}
+  @keyframes flashA{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+  .conf{position:fixed; top:-12px; width:11px;height:15px; z-index:8; pointer-events:none; border-radius:2px;}
+  .foot{position:fixed; bottom:8px; left:0; right:0; text-align:center; color:rgba(120,166,194,.45); font-size:11px; letter-spacing:.14em; z-index:3; font-family:var(--lab);}
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="glow g-teal"></div><div class="glow g-orange"></div>
+  <div class="waves"><svg viewBox="0 0 1200 300" preserveAspectRatio="none">
+    <path class="wln" d="M0,120 C150,80 300,160 450,120 S750,80 900,120 1050,160 1200,120"/>
+    <path class="wln" d="M0,180 C180,140 320,210 480,175 S760,135 920,180 1080,215 1200,175"/>
+  </svg></div><div class="vignette"></div>
+</div>
+<div class="brand"><span class="live">LIVE</span> ・ 神センス！スタートタイミング「0.15」チャレンジ</div>
+<button class="mute" id="mute">🔊</button>
+<div class="flash" id="flash"></div>
+
+<div class="wrap">
+  <!-- TITLE -->
+  <section class="screen on" id="title">
+    <div class="kicker">神センス！ Boat Racer Start Timing</div>
+    <div class="title">スタートタイミング<br><span class="accent en">「0.15」</span>チャレンジ</div>
+    <div class="dots"><i style="background:var(--k1)"></i><i style="background:var(--k2)"></i><i style="background:var(--k3)"></i><i style="background:var(--k4)"></i><i style="background:var(--k5)"></i><i style="background:var(--k6)"></i></div>
+    <p class="lead">大時計が<b>0</b>を差した瞬間から、いかに速く（<b>0秒に近く</b>）スタートを切れるか。攻めるほど神スタート、でも0より早いと<b style="color:var(--red)">フライング(F)</b>。お客さんは優勝者を予想投票、的中で<b>商品プレゼント</b>。</p>
+    <ul class="steps">
+      <li><span class="i">1</span><span>6人の挑戦者をセット（1〜6号艇）</span></li>
+      <li><span class="i">2</span><span>お客さんが「誰が神スタートを決めるか」予想投票 → <b>オッズ</b>変動</span></li>
+      <li><span class="i">3</span><span>1人ずつ挑戦（大時計・秒針も消える感覚勝負）</span></li>
+      <li><span class="i">4</span><span><b>0秒にいちばん近い</b>人が優勝 → 的中者に商品プレゼント</span></li>
+    </ul>
+    <button class="btn big" id="toSetup">はじめる ▶</button>
+  </section>
+
+  <!-- SETUP -->
+  <section class="screen" id="setup">
+    <div class="kicker">Entry</div>
+    <div class="title" style="font-size:clamp(24px,5.5vw,38px)">挑戦者エントリー</div>
+    <div class="setup-grid" id="setupGrid"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="backTitle">戻る</button>
+      <button class="btn orange" id="toVote">この6人で予想開始 ▶</button>
+    </div>
+  </section>
+
+  <!-- VOTE -->
+  <section class="screen" id="vote">
+    <div class="qtext">誰が神スタートを決める？（0秒に近いほど攻めた好スタート）</div>
+    <div class="board">
+      <div class="bhead"><span class="venue"><span class="rc"></span>Odds ／ 優勝予想</span><span class="rno"><span>予想</span></span></div>
+      <div class="colhead"><span>枠</span><span>挑戦者 ／ 投票</span><span>票</span><span>オッズ</span></div>
+      <div id="voteRows"></div>
+    </div>
+    <div class="totline">総投票 <b id="totVotes">0</b> 票 ／ 行タップ or ＋で集計</div>
+    <div class="btnrow">
+      <button class="btn ghost" id="resetVotes">票クリア</button>
+      <button class="btn orange" id="toChallenge">投票締切 → チャレンジ ▶</button>
+    </div>
+  </section>
+
+  <!-- CHALLENGE -->
+  <section class="screen" id="challenge">
+    <div class="chalhead" id="chalWho"><span class="kwmini"><span>1</span></span>挑戦者A の番</div>
+    <div class="stage">
+      <svg class="clock" id="clockSvg" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34e0ff"/><stop offset="1" stop-color="#ffd24a"/></linearGradient>
+          <radialGradient id="face" cx="50%" cy="42%" r="65%"><stop offset="0" stop-color="#0c2f4a"/><stop offset="1" stop-color="#051422"/></radialGradient>
+        </defs>
+        <circle cx="100" cy="100" r="96" fill="url(#face)" stroke="rgba(120,200,240,.2)" stroke-width="1.5"/>
+        <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(120,200,240,.12)" stroke-width="8"/>
+        <circle id="progress" cx="100" cy="100" r="92" fill="none" stroke="url(#ring)" stroke-width="8" stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="578" transform="rotate(-90 100 100)" style="filter:drop-shadow(0 0 6px rgba(47,228,255,.6))"/>
+        <g id="ticks"></g>
+        <line id="hand" x1="100" y1="100" x2="100" y2="24" stroke="#ff6a1a" stroke-width="4.5" stroke-linecap="round" style="filter:drop-shadow(0 0 5px rgba(255,106,26,.8))"/>
+        <circle cx="100" cy="100" r="7" fill="#eaf6ff"/><circle cx="100" cy="100" r="3" fill="#ff6a1a"/>
+      </svg>
+      <div class="cdnum en" id="cdnum">10</div>
+      <div class="blindmsg" id="blind"><div class="big">感覚で押せ！</div><div class="small">AIM 0.15</div></div>
+    </div>
+    <button class="go" id="goBtn">PUSH</button>
+    <div class="hint">タップ / スペース / Enter で判定</div>
+    <div class="chalres" id="chalRes">
+      <div class="v" id="chalVerdict">—</div>
+      <div class="stbig en" id="chalST">0.00<span class="s">秒</span></div>
+      <button class="btn orange" id="nextChal">次の挑戦者へ ▶</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="result">
+    <div class="qtext">結果発表 ／ 0秒にいちばん近い神スタートは？</div>
+    <div class="board standings">
+      <div class="bhead"><span class="venue"><span class="rc"></span>Result ／ 着順</span><span class="rno"><span>結果</span></span></div>
+      <div class="colhead"><span>枠</span><span>挑戦者</span><span>ST</span><span>オッズ</span></div>
+      <div id="resultRows"></div>
+    </div>
+    <div class="btnrow"><button class="btn big orange" id="toPayout">結果・プレゼント発表 ▶</button></div>
+  </section>
+
+  <!-- PAYOUT -->
+  <section class="screen" id="payout">
+    <div class="qhead">🎁 Prize ／ 商品プレゼント</div>
+    <div class="paywin" id="payWin">—</div>
+    <div class="paymul en" id="payMul">×0.0</div>
+    <div class="paynote" id="payNote"></div>
+    <div class="btnrow"><button class="btn big" id="again">もう一度（同じメンバー） ▶</button></div>
+    <div class="btnrow"><button class="btn ghost" id="finish">最初から</button></div>
+  </section>
+</div>
+<div class="foot">株式会社エスノヴァ ／ ボートレースPRイベント用プロトタイプ（合体版）</div>
+
+<script>
+(() => {
+  "use strict";
+  const $=s=>document.querySelector(s);
+  const screens={title:$('#title'),setup:$('#setup'),vote:$('#vote'),challenge:$('#challenge'),result:$('#result'),payout:$('#payout')};
+  let state='title';
+  function show(n){ for(const k in screens) screens[k].classList.toggle('on',k===n); state=n; window.scrollTo(0,0); }
+
+  const N=6, TARGET=0.15, ZERO_AT=10.0, HIDE_REMAIN=4.0, RING_LEN=578, TAKEOUT=0;
+  const COL=[{b:'var(--k1)',t:'var(--k1t)'},{b:'var(--k2)',t:'var(--k2t)'},{b:'var(--k3)',t:'var(--k3t)'},{b:'var(--k4)',t:'var(--k4t)'},{b:'var(--k5)',t:'var(--k5t)'},{b:'var(--k6)',t:'var(--k6t)'}];
+  let names=['挑戦者A','挑戦者B','挑戦者C','挑戦者D','挑戦者E','挑戦者F'];
+  let votes=new Array(N).fill(0);
+  let results=new Array(N).fill(null); // ST or null
+  let curIdx=0;
+
+  function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // ticks
+  (function(){ const g=$('#ticks'); let h=''; for(let i=0;i<60;i++){ const a=(i*6-90)*Math.PI/180; const r1=i%5===0?80:85, r2=91; h+=`<line x1="${(100+r1*Math.cos(a)).toFixed(1)}" y1="${(100+r1*Math.sin(a)).toFixed(1)}" x2="${(100+r2*Math.cos(a)).toFixed(1)}" y2="${(100+r2*Math.sin(a)).toFixed(1)}" stroke="rgba(120,200,240,${i%5===0?.55:.22})" stroke-width="${i%5===0?2:1}"/>`;} g.innerHTML=h; })();
+
+  // audio
+  let ac=null, muted=false;
+  function AC(){ try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended')ac.resume(); }catch(e){} return ac; }
+  function tone(f,d,dur,type,vol){ if(muted)return; const c=AC(); if(!c)return; const o=c.createOscillator(),g=c.createGain(); o.type=type||'sine'; const t=c.currentTime+d; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||.15,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.02); }
+  function fanfare(){ [[523.25,0],[659.25,.11],[783.99,.22],[1046.5,.36]].forEach(a=>tone(a[0],a[1],.5,'triangle',.18)); }
+  // ボートのエンジン吹け上がり音（PUSH時）
+  function engineRev(){ if(muted)return; const c=AC(); if(!c)return; const t=c.currentTime;
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(380,t); lp.frequency.linearRampToValueAtTime(1700,t+.5); lp.Q.value=7;
+    const g=c.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.26,t+.06); g.gain.exponentialRampToValueAtTime(.16,t+.42); g.gain.exponentialRampToValueAtTime(.0001,t+.95); lp.connect(g); g.connect(c.destination);
+    const o1=c.createOscillator(); o1.type='sawtooth'; o1.frequency.setValueAtTime(68,t); o1.frequency.exponentialRampToValueAtTime(150,t+.5); o1.frequency.exponentialRampToValueAtTime(118,t+.95);
+    const o2=c.createOscillator(); o2.type='sawtooth'; o2.detune.value=9; o2.frequency.setValueAtTime(70,t); o2.frequency.exponentialRampToValueAtTime(156,t+.5);
+    o1.connect(lp); o2.connect(lp); o1.start(t); o2.start(t); o1.stop(t+1); o2.stop(t+1); }
+  $('#mute').addEventListener('click',()=>{ muted=!muted; $('#mute').textContent=muted?'🔇':'🔊'; if(!muted){AC(); tone(880,0,.08,'sine',.12);} });
+
+  // ---- setup ----
+  (function(){ const g=$('#setupGrid'); let h=''; for(let i=0;i<N;i++){ h+=`<div class="fld"><div class="kwsq" style="--bc:${COL[i].b};--bt:${COL[i].t}"><span>${i+1}</span></div><input data-i="${i}" maxlength="10" placeholder="${i+1}号艇（${names[i]}）"></div>`; } g.innerHTML=h; })();
+  function readNames(){ document.querySelectorAll('#setupGrid input').forEach(inp=>{ const i=+inp.dataset.i, v=inp.value.trim(); names[i]=v||(i+1+'号艇'); }); }
+
+  // ---- odds ----
+  function odds(i){ const t=votes.reduce((a,b)=>a+b,0); if(!t)return null; const v=votes[i]||0.5; return Math.max(1,(t*(1-TAKEOUT))/v); }
+  function favIndex(){ const t=votes.reduce((a,b)=>a+b,0); if(!t)return -1; let m=0; for(let i=1;i<N;i++) if(votes[i]>votes[m])m=i; return votes[m]>0?m:-1; }
+  function oddsHTML(o){ return o==null?'—':('<span class="x">×</span>'+o.toFixed(1)); }
+  // ボートレース本準拠のST評価（0秒に近いほど攻めた神スタート・0より早い=F・1.0超=出遅れL）
+  function grade(st){
+    if(st==null) return {l:'未挑戦', c:'var(--muted)', i:'—'};
+    if(st<0) return {l:'フライング (F)', c:'var(--red)', i:'❌'};
+    if(st<=0.15) return {l:'神スタート！', c:'var(--gold)', i:'👑'};
+    if(st<=0.19) return {l:'平均的', c:'#cfe6f5', i:'🏆'};
+    return {l:'遅い！', c:'var(--muted)', i:'🐢'};
+  }
+  function boatSVG(){ return `<svg class="boaticon" viewBox="0 0 92 40" preserveAspectRatio="xMidYMid meet"><g fill="rgba(255,255,255,.78)"><path d="M3,30 Q5,15 12,26 Q8,23 7,32 Z"/><path d="M9,31 Q13,13 21,27 Q15,23 13,33 Z" opacity=".82"/><circle cx="6" cy="17" r="1.7"/><circle cx="11.5" cy="12.5" r="1.4"/><circle cx="17" cy="16" r="1.5"/><circle cx="3.5" cy="24" r="1.5"/></g><path d="M16,23 l8.5,-1 l1,6.4 l-9.5,1 Z" fill="#33495a"/><path d="M20,26.5 L74,21.5 Q88,21.5 84,29 L34,31.5 Q22,31.5 20,26.5 Z" fill="#eef4f8"/><path d="M20,26.5 Q22,31.5 34,31.5 L84,29 Q85.4,30.6 81,32 L32,34 Q20.5,33.2 20,26.5 Z" fill="#adc3d2"/><path d="M40,24.6 L57,23.1 L52.5,27.4 L42.5,27.6 Z" fill="#0f1e28"/><path d="M44,24.2 Q46,13.6 51.5,14.4 Q57,15.2 56,24.4 Z" fill="var(--bc)" stroke="rgba(0,0,0,.28)" stroke-width=".6"/><circle cx="49" cy="12" r="5.1" fill="var(--bc)" stroke="rgba(0,0,0,.28)" stroke-width=".6"/><path d="M46.2,11.2 a3.3,3.3 0 0 1 5.6,0 Z" fill="rgba(0,0,0,.45)"/><g fill="rgba(255,255,255,.9)"><circle cx="84" cy="22.5" r="2.1"/><circle cx="88.4" cy="25" r="1.5"/></g></svg>`; }
+  function turnSVG(){ return `<svg class="tmark" viewBox="0 0 26 44" preserveAspectRatio="xMidYMid meet"><ellipse cx="13" cy="40" rx="10" ry="3.5" fill="rgba(0,0,0,.35)"/><rect x="11" y="7" width="3" height="30" rx="1.5" fill="#c9d6df"/><path d="M14,7 L24,10.5 L14,14 Z" fill="#ff6a1a"/><path d="M4,32 Q13,28 22,32 L22,37 Q13,41 4,37 Z" fill="#ff7a1a"/></svg>`; }
+
+  function buildVoteRows(){
+    const c=$('#voteRows'); let h='';
+    for(let i=0;i<N;i++){ h+=`<div class="brow" data-i="${i}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><div class="binfo"><div class="nm"><span class="txt">${esc(names[i])}</span><span class="tag"><span>人気</span></span></div><div class="sub2"><span class="vv"><span class="vn">0</span>票</span><span class="lane"><i class="trail"></i>${boatSVG()}${turnSVG()}</span></div></div><div class="odds oc">—</div><div class="ctl"><button class="minus" data-act="minus" data-i="${i}">−</button><button data-act="plus" data-i="${i}">＋</button></div></div>`; }
+    c.innerHTML=h;
+    c.querySelectorAll('.brow').forEach(r=>{ const i=+r.dataset.i; r.addEventListener('click',e=>{ if(e.target.closest('.ctl'))return; votes[i]++; renderVotes(); }); });
+    c.querySelectorAll('.ctl button').forEach(b=>{ b.addEventListener('click',e=>{ e.stopPropagation(); const i=+b.dataset.i; if(b.dataset.act==='plus')votes[i]++; else votes[i]=Math.max(0,votes[i]-1); renderVotes(); }); });
+    renderVotes();
+  }
+  function renderVotes(){
+    const total=votes.reduce((a,b)=>a+b,0), max=Math.max(1,...votes), fav=favIndex();
+    document.querySelectorAll('#voteRows .brow').forEach(r=>{ const i=+r.dataset.i; const pct=votes[i]/max*100;
+      r.querySelector('.vn').textContent=votes[i]; r.querySelector('.oc').innerHTML=oddsHTML(odds(i));
+      r.querySelector('.trail').style.width=pct+'%'; r.querySelector('.boaticon').style.left=(2+pct*0.86)+'%';
+      r.classList.toggle('fav', i===fav); });
+    $('#totVotes').textContent=total;
+  }
+
+  // ---- challenge (大時計) ----
+  const cdnum=$('#cdnum'), blind=$('#blind'), hand=$('#hand'), progress=$('#progress'), clockSvg=$('#clockSvg');
+  let raf=0, t0=0, pressed=false, hidden=false, lastBeep=99;
+  function startChallenge(){
+    show('challenge'); $('#chalRes').classList.remove('on'); $('#goBtn').removeAttribute('disabled');
+    $('#chalWho').innerHTML=`<span class="kwmini" style="--bc:${COL[curIdx].b};--bt:${COL[curIdx].t}"><span>${curIdx+1}</span></span>${esc(names[curIdx])} の番`;
+    pressed=false; hidden=false; lastBeep=99;
+    cdnum.classList.remove('hide'); blind.classList.remove('on'); clockSvg.classList.remove('gone'); cdnum.textContent='10';
+    progress.style.strokeDashoffset=RING_LEN; hand.style.transform='';
+    t0=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+  }
+  function loop(now){
+    const el=(now-t0)/1000, remain=ZERO_AT-el, frac=Math.min(el/ZERO_AT,1);
+    if(!hidden){
+      progress.style.strokeDashoffset=RING_LEN*(1-frac);
+      hand.style.transform=`rotate(${frac*360}deg)`; hand.style.transformOrigin='100px 100px';
+      if(remain>HIDE_REMAIN){ cdnum.textContent=Math.max(0,Math.ceil(remain)); const s=Math.ceil(remain); if(s!==lastBeep){lastBeep=s; tone(760,0,.06,'sine',.14);} }
+      else { hidden=true; cdnum.classList.add('hide'); blind.classList.add('on'); clockSvg.classList.add('gone'); }
+    }
+    if(!pressed && el<ZERO_AT+2.5){ raf=requestAnimationFrame(loop); } else if(!pressed){ doPress(true); }
+  }
+  function doPress(auto){
+    if(state!=='challenge'||pressed)return; pressed=true; cancelAnimationFrame(raf);
+    if(!auto) engineRev();
+    $('#goBtn').setAttribute('disabled','');
+    const el=(performance.now()-t0)/1000, st=el-ZERO_AT;
+    results[curIdx]=st;
+    const V=$('#chalVerdict'), SV=$('#chalST'); const g=grade(st);
+    V.textContent=g.i+' '+g.l; V.style.color=g.c;
+    SV.innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; SV.style.webkitTextFillColor=(st<0?'var(--red)':'#fff');
+    if(st<0){ flashFx('f'); tone(150,0,.5,'sine',.22); }
+    else if(st<=0.09){ flashFx('p'); tone(1040,0,.12,'sine',.2); }
+    else tone(560,0,.12,'sine',.16);
+    $('#nextChal').textContent = (curIdx>=N-1)?'結果発表へ ▶':'次の挑戦者へ ▶';
+    setTimeout(()=>$('#chalRes').classList.add('on'),250);
+  }
+  function press(e){ if(state==='challenge' && !pressed){ e.preventDefault(); doPress(false); } }
+  $('#goBtn').addEventListener('click',press);
+  document.addEventListener('keydown',e=>{ if(e.code==='Space'||e.code==='Enter'){ if(state==='challenge'){ e.preventDefault(); doPress(false);} } });
+  $('#nextChal').addEventListener('click',()=>{ if(curIdx>=N-1){ buildResult(); show('result'); } else { curIdx++; startChallenge(); } });
+
+  function flashFx(c){ const f=$('#flash'); f.className='flash '+c; setTimeout(()=>f.className='flash',600); }
+
+  // ---- result / ranking ----
+  function ranking(){
+    // 有効(ST>=0)は0秒に近い＝小さいほど上位。フライング/未挑戦は最下位
+    const idx=[...Array(N).keys()];
+    idx.sort((a,b)=>{ const fa=results[a]==null||results[a]<0, fb=results[b]==null||results[b]<0;
+      if(fa&&fb) return 0; if(fa)return 1; if(fb)return -1;
+      return results[a]-results[b]; });
+    return idx;
+  }
+  function stText(i){ const r=results[i]; if(r==null)return '<span class="st pending">—</span>'; if(r<0)return '<span class="st foul">F</span>'; return '<span class="st">'+r.toFixed(2)+'</span>'; }
+  function buildResult(){
+    const order=ranking(); const c=$('#resultRows'); let h='';
+    order.forEach((i,rank)=>{ const cls=(rank===0?'win rank1':''); h+=`<div class="brow ${cls}" data-i="${i}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><span class="rankbadge"><span>${rank+1}着</span></span><div class="binfo"><div class="nm"><span class="txt">${esc(names[i])}</span></div></div>${stText(i)}<div class="odds oc">${oddsHTML(odds(i))}</div></div>`; });
+    c.innerHTML=h;
+    fanfare();
+  }
+
+  // ---- payout ----
+  function buildPayout(){
+    const order=ranking(); const win=order[0];
+    const valid=results[win]!=null && results[win]>=0;
+    const o=odds(win)||1, shown=+o.toFixed(1);
+    show('payout');
+    if(!valid){ $('#payWin').innerHTML='全員フライング…優勝なし'; $('#payMul').innerHTML='—'; $('#payNote').textContent='もう一度チャレンジ！'; return; }
+    $('#payWin').innerHTML=`優勝 <span class="winbadge" style="--bc:${COL[win].b};--bt:${COL[win].t}"><span>${win+1}</span></span> <span style="color:var(--gold)">${esc(names[win])}</span>（${results[win].toFixed(2)}秒）`;
+    $('#payMul').innerHTML=`×${shown.toFixed(1)}<small> オッズ</small>`;
+    const total=votes.reduce((a,b)=>a+b,0), share=total?Math.round(votes[win]/total*100):0;
+    $('#payNote').innerHTML=`${win+1}号艇「${esc(names[win])}」を予想的中した方に <b>🎁 商品プレゼント！</b><br>的中は投票者の <b>${share}%</b>（人気薄を当てた人ほどレア）。`;
+    flashFx('p'); fanfare(); confetti();
+  }
+  function confetti(){ const cols=['#ffd24a','#2fe4ff','#ff6a1a','#15b45f','#ff2d78','#fff']; for(let k=0;k<64;k++){ const e=document.createElement('div'); e.className='conf'; e.style.left=(Math.random()*100)+'vw'; e.style.background=cols[k%cols.length]; document.body.appendChild(e); const dur=1500+Math.random()*1300,x=(Math.random()*2-1)*90; e.animate([{transform:'translate(0,-12px) rotate(0)',opacity:1},{transform:`translate(${x}px,105vh) rotate(${760*(Math.random()>.5?1:-1)}deg)`,opacity:.85}],{duration:dur,easing:'cubic-bezier(.2,.6,.4,1)'}); setTimeout(()=>e.remove(),dur); } }
+
+  // ---- flow buttons ----
+  $('#toSetup').addEventListener('click',()=>show('setup'));
+  $('#backTitle').addEventListener('click',()=>show('title'));
+  $('#toVote').addEventListener('click',()=>{ readNames(); votes=new Array(N).fill(0); results=new Array(N).fill(null); buildVoteRows(); show('vote'); });
+  $('#resetVotes').addEventListener('click',()=>{ votes=new Array(N).fill(0); renderVotes(); });
+  $('#toChallenge').addEventListener('click',()=>{ if(votes.reduce((a,b)=>a+b,0)===0){ if(!confirm('票が0です。このままチャレンジに進みますか？'))return; } curIdx=0; startChallenge(); });
+  $('#toPayout').addEventListener('click',buildPayout);
+  $('#again').addEventListener('click',()=>{ votes=new Array(N).fill(0); results=new Array(N).fill(null); buildVoteRows(); show('vote'); });
+  $('#finish').addEventListener('click',()=>{ show('title'); });
+
+  show('title');
+})();
+</script>
+</body>
+</html>

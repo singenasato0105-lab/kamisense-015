@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>確認用マルチ画面 ／ 神センス0.15チャレンジ</title>
+<style>
+  :root{--bg:#070c11;--pan:#0e1620;--line:#1e2a36;--ink:#dbe8f2;--mut:#8fa6ba;--red:#ff5a4d;--gold:#f6c343;--blue:#2f7bff;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic",sans-serif;}
+  .bar{height:52px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0a121a;}
+  .bar b{font-size:15px;font-weight:900;letter-spacing:.02em;}
+  .bar .sp{flex:1;}
+  .bar select,.bar button{font:inherit;font-size:13px;font-weight:800;color:var(--ink);background:#13202c;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;}
+  .bar button.go{background:linear-gradient(180deg,#2f7bff,#1a5fe0);border-color:#2f7bff;color:#fff;}
+  .bar button.go:disabled{opacity:.5;cursor:default;}
+  .bar button.res{background:#1c2a1c;border-color:#2f4f2f;color:#bfe6bf;}
+  .bar .st{font-size:12px;color:var(--mut);min-width:180px;}
+  .bar .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3ad07a;margin-right:5px;vertical-align:middle;}
+  .grid{display:grid;grid-template-columns:1.55fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;height:calc(100vh - 52px);}
+  .panel{background:var(--pan);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0;}
+  .panel h3{margin:0;padding:6px 11px;font-size:12px;font-weight:900;color:var(--ink);background:#12202c;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;}
+  .panel h3 .tag{font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;background:#1d2f40;color:#9fc0e0;}
+  .fr{flex:1;position:relative;min-height:0;background:#000;}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .p-screen{grid-column:1;grid-row:1 / span 2;}
+  .p-admin{grid-column:2 / span 2;grid-row:1;}
+  .p-player{grid-column:2;grid-row:2;}
+  .p-voter{grid-column:3;grid-row:2;}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <b>🖥 確認用マルチ画面</b>
+    <span class="tag" style="font-size:11px;color:var(--mut)">投影・運営・挑戦者・投票者を同時表示</span>
+    <span class="sp"></span>
+    <span class="st"><span class="dot"></span><span id="st">待機中</span></span>
+    <select id="venue" title="会場BGM">
+      <option value="naruto">1部 鳴門</option>
+      <option value="kojima">2部 児島</option>
+      <option value="marugame">3部 丸亀</option>
+    </select>
+    <button class="go" id="demo">▶ 1周デモ自動再生</button>
+    <button class="res" id="reset">ロビーに戻す</button>
+  </div>
+  <div class="grid">
+    <div class="panel p-screen"><h3>📺 投影（大画面） <span class="tag">/screen</span></h3><div class="fr"><iframe id="if_screen" src="/screen"></iframe></div></div>
+    <div class="panel p-admin"><h3>🎛 運営 <span class="tag">/admin（ミラー）</span></h3><div class="fr"><iframe src="/admin?mirror=1"></iframe></div></div>
+    <div class="panel p-player"><h3>🏁 挑戦者・1号艇 安里信弦（スマホ） <span class="tag">/player（自動）</span></h3><div class="fr"><iframe src="/player?auto=1&name=%E5%AE%89%E9%87%8C%E4%BF%A1%E5%BC%A6"></iframe></div></div>
+    <div class="panel p-voter"><h3>🎫 観客・投票（スマホ） <span class="tag">/vote</span></h3><div class="fr"><iframe src="/vote"></iframe></div></div>
+  </div>
+
+<script>
+const N=6;
+const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // 1号艇=安里信弦 固定
+const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // 3号艇0.04=神スタート / 4号艇フライング
+const VOTES=[3,1,9,2,6,1];
+const post=(m)=>fetch('/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)});
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const stEl=document.getElementById('st'), demoBtn=document.getElementById('demo'), venueSel=document.getElementById('venue');
+function status(t){ stEl.textContent=t; }
+function base(){ return {phase:'lobby',round:0,venue:venueSel.value,names:Array(N).fill(null),joined:Array(N).fill(false),votes:Array(N).fill(0),results:Array(N).fill(null),goSeq:0}; }
+
+async function reset(){ await post({type:'state',src:'admin',s:base()}); status('ロビーにリセット'); }
+document.getElementById('reset').onclick=reset;
+
+demoBtn.onclick=async function(){
+  demoBtn.disabled=true;
+  try{
+    let s=base(); await post({type:'state',src:'admin',s}); status('① ロビー'); await sleep(1200);
+    // ① エントリー（1人ずつ点灯）
+    for(let i=0;i<N;i++){ s.joined[i]=true; s.names[i]=NAMES[i]; await post({type:'state',src:'admin',s}); status('① エントリー '+(i+1)+'/6'); await sleep(500); }
+    await sleep(700);
+    // ② 投票フェーズ（票が動く＝オッズ変動）
+    s.phase='vote'; await post({type:'state',src:'admin',s}); status('② 投票受付'); await sleep(900);
+    const rem=VOTES.slice(); let total=0, target=VOTES.reduce((a,b)=>a+b,0);
+    while(total<target){ let cands=[]; rem.forEach((v,i)=>{ if(v>0)cands.push(i); }); const i=cands[Math.floor(Math.random()*cands.length)]; rem[i]--; s.votes[i]++; total++; await post({type:'state',src:'admin',s}); status('② 投票 '+total+'/'+target+'票'); await sleep(260); }
+    await sleep(900);
+    // ③ 締切→同時スタート
+    s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=1; s.goAt=Date.now()+2600; await post({type:'state',src:'admin',s}); status('③ スタート勝負！（大時計→PUSH）');
+    await sleep(13500);
+    // ④ 結果（0秒に近い順）
+    s.results=STS.slice(); s.phase='result'; await post({type:'state',src:'admin',s}); status('④ 結果発表'); await sleep(3500);
+    // ⑤ プレゼント
+    s.phase='prize'; await post({type:'state',src:'admin',s}); status('⑤ 商品プレゼント 🎁'); await sleep(1200);
+    status('✅ 1周デモ完了（全パネル同時更新を確認）');
+  }catch(e){ status('デモ失敗: '+e); }
+  demoBtn.disabled=false;
+};
+
+// 会場変更は投影のBGM切替に反映（デモ外でも触れる）
+venueSel.onchange=async function(){ const r=await fetch('/state').then(r=>r.json()).catch(()=>null); const s=(r&&r.state&&r.state.s)?r.state.s:base(); s.venue=venueSel.value; await post({type:'state',src:'admin',s}); status('会場→'+venueSel.options[venueSel.selectedIndex].text); };
+</script>
+</body>
+</html>

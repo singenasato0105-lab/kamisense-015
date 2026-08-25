@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>運営 ／ 神センス0.15チャレンジ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .wrap{justify-content:flex-start; padding-top:46px;}
+  .phasebar{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:8px;}
+  .ph{font-family:var(--lab); font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:5px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted);}
+  .ph.on{background:linear-gradient(180deg,#5cecff,var(--cyan-d)); color:#04202f; border-color:transparent; font-weight:800;}
+  .urls{margin-top:12px; display:grid; gap:6px; font-family:var(--lab); font-size:13px; color:#bcd7e8; text-align:left; max-width:520px; width:100%;}
+  .urls b{color:var(--gold);}
+  .urls code{background:rgba(255,255,255,.06); padding:2px 8px; border-radius:6px; color:#fff;}
+  .ctlbtns{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:14px;}
+  .adminqr{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:18px;}
+  .aqr{background:#fff; border-radius:14px; padding:12px 12px 10px; text-align:center; box-shadow:0 10px 26px rgba(0,0,0,.35); width:196px;}
+  .aqr .q{width:164px; height:164px; margin:0 auto; display:grid; place-items:center;}
+  .aqr .q img,.aqr .q canvas{width:164px !important; height:164px !important;}
+  .aqr .lb{margin-top:8px; font-family:var(--jp); font-weight:900; color:#0e2b42; font-size:14px; line-height:1.45;}
+  .aqr .lb small{display:block; font-weight:600; color:#5a7186; font-size:11px; margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="brand"><span class="live">LIVE</span> ・ 運営 ADMIN</div>
+<div class="wrap">
+  <div class="phasebar" id="phasebar"></div>
+  <div class="qtext" id="phaseTitle">エントリー受付中</div>
+  <div class="board" style="max-width:620px; width:100%">
+    <div class="bhead"><span class="venue"><span class="rc"></span>Control Board</span><span class="rno"><span id="rno">R1</span></span></div>
+    <div class="colhead"><span>枠</span><span>挑戦者</span><span id="ch3">票</span><span id="ch4">オッズ</span></div>
+    <div id="rows"></div>
+  </div>
+  <div class="totline">参加 <b id="joinCnt">0</b>/6　投票 <b id="voteCnt">0</b>　完了 <b id="resCnt">0</b>/<span id="joinCnt2">0</span></div>
+  <div class="ctlbtns" id="ctl"></div>
+  <div class="adminqr">
+    <div class="aqr"><div class="q" id="qrPlayer"></div><div class="lb">🏁 挑戦者はこちら<small>号艇を選んで参加（6人）</small></div></div>
+    <div class="aqr"><div class="q" id="qrVote"></div><div class="lb">🎫 観客の予想投票<small>優勝を予想してタップ</small></div></div>
+  </div>
+  <div class="urls">
+    <div>📺 投影: <code id="uScreen">/screen</code></div>
+    <div>🏁 挑戦者: <code id="uPlayer">/player</code>（各自のスマホ・6人）</div>
+    <div>🎫 投票: <code id="uVote">/vote</code>（お客さんのスマホ）</div>
+    <div style="color:var(--muted)">上記URLを開けば連動します（公開URL・ネット接続があればどこからでもOK）</div>
+  </div>
+</div>
+<div class="conn" id="conn">● 接続中</div>
+<script src="qrcode.min.js"></script>
+<script src="shared.js"></script>
+<script>
+(()=>{ "use strict";
+  const $=s=>document.querySelector(s);
+  document.body.insertAdjacentHTML('afterbegin', sceneHTML());
+  const bus=makeBus('admin');
+  const MIRROR=/[?&]mirror=1/.test(location.search);   // ウォール確認用：操作せずstateを追従表示
+  const PHASES=[['lobby','エントリー'],['vote','予想投票'],['countdown','スタート勝負'],['result','結果'],['prize','商品プレゼント']];
+  let s={phase:'lobby', round:1, venue:'naruto', names:new Array(N).fill(null), joined:new Array(N).fill(false), votes:new Array(N).fill(0), results:new Array(N).fill(null)};
+  const VENUES=[['naruto','1部 鳴門'],['kojima','2部 児島'],['marugame','3部 丸亀']];
+
+  const base=appUrl();
+  $('#uScreen').textContent=base+'screen'; $('#uPlayer').textContent=base+'player'; $('#uVote').textContent=base+'vote';
+  function mkQR(id,url){ try{ const el=document.getElementById(id); if(el&&window.QRCode){ el.innerHTML=''; new QRCode(el,{text:url,width:164,height:164,colorDark:'#0e2b42',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); } }catch(e){} }
+  mkQR('qrPlayer', base+'player'); mkQR('qrVote', base+'vote');
+
+  // サーバーが集計の主（join/vote/resultはサーバーが常時集計）。運営は「表示＋操作コマンド送信」だけ。
+  let holdUntil=0;   // 操作直後は自分の楽観表示を優先（サーバ反映までのちらつき防止）
+  function joinedCount(){ return s.joined.filter(Boolean).length; }
+  function resCount(){ return s.results.filter((r,i)=>s.joined[i]&&r!=null).length; }
+  function send(action,value){ if(MIRROR)return; bus.post({type:'cmd',src:'admin',action:action,value:value}); holdUntil=Date.now()+1000; }
+
+  function render(){
+    document.getElementById('phasebar').innerHTML=PHASES.map(p=>`<span class="ph ${s.phase===p[0]?'on':''}">${p[1]}</span>`).join('');
+    $('#rno').textContent='R'+s.round;
+    const titleMap={lobby:'エントリー受付中（挑戦者がスマホで参加）',vote:'予想投票 受付中',countdown:'スタート勝負！（挑戦者がPUSH）',result:'結果発表',prize:'商品プレゼント'};
+    $('#phaseTitle').textContent=titleMap[s.phase]||'';
+    const showST=(s.phase==='result'||s.phase==='prize');
+    $('#ch3').textContent= showST?'ST':'票'; $('#ch4').textContent= showST?'着':'オッズ';
+    const fav=favIndex(s.votes), order=ranking(s.results), rankOf={}; order.forEach((idx,r)=>rankOf[idx]=r);
+    const win=order[0], validWin=(s.results[win]!=null&&s.results[win]>=0);
+    let h='';
+    for(let i=0;i<N;i++){ const nm=s.names[i]||(s.joined[i]?(i+1+'号艇'):'—（未参加）'); const o=odds(s.votes,i);
+      let c3,c4;
+      if(showST){ const st=s.results[i]; c3= st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>'); c4= s.joined[i]?('<span class="odds">'+(rankOf[i]!=null?(rankOf[i]+1)+'着':'—')+'</span>'):''; }
+      else { c3='<span class="binfo"><span class="vv" style="min-width:0">'+(s.votes[i]||0)+'</span></span>'; c4='<span class="odds oc">'+oddsHTML(o)+'</span>'; }
+      const winCls=(showST&&validWin&&i===win)?'win':'';
+      h+=`<div class="brow ${s.phase==='vote'&&i===fav?'fav':''} ${winCls}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div>${showST?'<span class="rankbadge"><span>'+((rankOf[i]!=null?rankOf[i]+1:'-'))+'着</span></span>':''}<div class="binfo"><div class="nm"><span class="txt">${esc(nm)}</span>${(s.joined[i]?'':' ')}</div></div>${c3}${c4}</div>`;
+    }
+    document.getElementById('rows').innerHTML=h;
+    $('#joinCnt').textContent=joinedCount(); $('#joinCnt2').textContent=joinedCount(); $('#voteCnt').textContent=s.votes.reduce((a,b)=>a+b,0); $('#resCnt').textContent=resCount();
+    // controls
+    let btns='';
+    if(s.phase==='lobby') btns=`<div style="width:100%;text-align:center;font-family:var(--lab);font-size:12px;letter-spacing:.1em;color:var(--muted);margin-bottom:2px">会場BGM（冒頭で選択）</div>`+VENUES.map(v=>`<button class="btn ghost" data-a="venue:${v[0]}" style="min-width:130px${s.venue===v[0]?';outline:2px solid var(--gold);color:var(--gold)':''}">${v[1]}${s.venue===v[0]?' ●':''}</button>`).join('')+`<div style="width:100%;height:2px"></div><button class="btn orange" data-a="vote">投票フェーズへ ▶${joinedCount()<1?' <span style="font-size:12px;font-weight:600;opacity:.85">（挑戦者0人でも進めます）</span>':''}</button>`;
+    else if(s.phase==='vote') btns=`<button class="btn ghost" data-a="phase:lobby">◀ エントリーに戻る</button><button class="btn orange" data-a="go">投票締切 → スタート勝負 ▶</button>`;
+    else if(s.phase==='countdown') btns=`<button class="btn ghost" data-a="phase:vote">◀ 投票に戻る</button><button class="btn orange" data-a="result">結果発表へ ▶</button>`;
+    else if(s.phase==='result') btns=`<button class="btn ghost" data-a="phase:countdown">◀ スタート勝負に戻る</button><button class="btn orange" data-a="prize">商品プレゼント発表へ ▶</button>`;
+    else if(s.phase==='prize') btns=`<button class="btn ghost" data-a="phase:result">◀ 結果に戻る</button><button class="btn" data-a="next">次のラウンド（同メンバー） ▶</button><button class="btn ghost" data-a="reset">最初から</button>`;
+    const c=document.getElementById('ctl'); c.innerHTML=btns;
+    c.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>action(b.dataset.a)));
+  }
+  function action(a){
+    if(MIRROR) return;   // ミラー表示は操作不可（確認専用）
+    if(a.indexOf('venue:')===0){ s.venue=a.split(':')[1]; render(); send('venue',s.venue); }
+    else if(a.indexOf('phase:')===0){ s.phase=a.split(':')[1]; render(); send('phase',s.phase); }   // 戻る（純ナビ）
+    else if(a==='vote'){ s.phase='vote'; render(); send('phase','vote'); }
+    else if(a==='lobby'){ s.phase='lobby'; render(); send('phase','lobby'); }
+    else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); render(); send('go'); }
+    else if(a==='result'){ s.phase='result'; render(); send('phase','result'); }
+    else if(a==='prize'){ s.phase='prize'; render(); send('phase','prize'); }
+    else if(a==='next'){ s.round=(s.round||1)+1; s.votes=new Array(N).fill(0); s.results=new Array(N).fill(null); s.phase='vote'; render(); send('next'); }
+    else if(a==='reset'){ s={phase:'lobby',round:1,venue:(s.venue||'naruto'),names:new Array(N).fill(null),joined:new Array(N).fill(false),votes:new Array(N).fill(0),results:new Array(N).fill(null)}; render(); send('reset'); }
+  }
+  document.body.classList.toggle('mirror', MIRROR);
+  // サーバー状態を購読して表示（集計・参加者データはサーバーが常時保持＝運営を閉じても取りこぼさない）
+  (function poll(){ fetch(appUrl()+'state',{cache:'no-store'}).then(r=>r.json()).then(d=>{ if(d&&d.state&&d.state.s && Date.now()>=holdUntil){ s=d.state.s; render(); } setConn(true); }).catch(()=>{ setConn(false); }).finally(()=>setTimeout(poll,300)); })();
+  render();
+})();
+</script>
+</body>
+</html>

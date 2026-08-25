@@ -1,0 +1,8 @@
+{
+  "name": "kamisense-015",
+  "version": "1.0.0",
+  "description": "神センス！スタートタイミング「0.15」チャレンジ ボートレースPRイベント多端末ゲーム（依存ゼロ・Node標準のみ）",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" }
+}

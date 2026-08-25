@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>当日運営手順書 ／ 神センス0.15チャレンジ</title>
+<style>
+  :root{--ink:#12222c;--mut:#5a7186;--line:#dce6ee;--gold:#c98a12;--red:#d33;--blue:#1f6fe8;--bg:#f6f9fb;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:32px 20px 80px;}
+  h1{font-size:26px;font-weight:900;letter-spacing:.01em;}
+  .sub{color:var(--mut);margin-top:4px;font-size:14px;}
+  h2{font-size:19px;font-weight:900;margin:30px 0 10px;padding:8px 12px;background:#0e2b42;color:#fff;border-radius:8px;}
+  h3{font-size:15px;font-weight:800;margin:16px 0 6px;color:#0e2b42;}
+  p,li{font-size:14.5px;}
+  ul,ol{margin:6px 0 6px 22px;}
+  li{margin:3px 0;}
+  code{background:#eef3f7;border:1px solid var(--line);border-radius:5px;padding:1px 7px;font-size:13px;color:#0e2b42;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;box-shadow:0 4px 14px rgba(20,40,60,.05);}
+  .role{display:grid;grid-template-columns:120px 1fr;gap:8px 14px;align-items:baseline;}
+  .role b{color:#0e2b42;}
+  .flow{counter-reset:f;}
+  .flow .step{position:relative;padding:12px 14px 12px 52px;border:1px solid var(--line);border-radius:10px;margin:8px 0;background:#fff;}
+  .flow .step::before{counter-increment:f;content:counter(f);position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:8px;background:#1f6fe8;color:#fff;font-weight:900;display:grid;place-items:center;}
+  .flow .step b{color:#0e2b42;}
+  .note{background:#fff8e6;border:1px solid #f0d896;border-radius:10px;padding:12px 14px;margin:8px 0;font-size:14px;}
+  .warn{background:#fdecec;border:1px solid #f2b8b8;border-radius:10px;padding:12px 14px;margin:8px 0;font-size:14px;}
+  .tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;background:#e8eef4;color:#0e2b42;margin-right:6px;}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;}
+  th{background:#eef3f7;}
+  .kbd{font-weight:800;color:var(--blue);}
+  @media print{body{background:#fff;} .card,.step{box-shadow:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>当日運営手順書</h1>
+  <div class="sub">神センス！スタートタイミング「0.15」チャレンジ ／ ボートレースPRイベント ／ 株式会社エスノヴァ</div>
+
+  <h2>0. これは何か</h2>
+  <div class="card">
+    6人の挑戦者が「スタート0.15チャレンジ」に挑み、観客が優勝者を予想投票。0秒にいちばん近い（＝神スタート）人が優勝、当てた観客に商品プレゼント。
+    <b>投影・挑戦者スマホ・観客スマホ・運営</b>の4画面がリアルタイム連動します。
+  </div>
+
+  <h2>1. 事前準備（開場前）</h2>
+  <div class="flow">
+    <div class="step"><b>公開URLを開くだけ</b>：専用サーバは公開URLで常時稼働中。各端末で下表のURLを開きます（インストール不要）。</div>
+    <div class="step"><b>ネットに繋がっていればOK</b>：会場Wi-Fi・モバイル回線どちらでも可。<b>同じネットワークでなくても連動</b>します（会場外・遠隔からも参加OK）。</div>
+    <div class="step"><b>4画面を開く</b>（下表）。運営画面のURL欄にも各アドレスが自動表示されます。</div>
+    <div class="step"><b>音声を有効化</b>：投影画面を<span class="kbd">1回クリック</span>すると会場BGMの音が解禁＆全cueをプリロード（以降は瞬時に切替）。</div>
+    <div class="step"><b>BGMファイルを配置済みか確認</b>：<code>bgm/&lt;会場&gt;/parade.mp3</code>（場内BGM・会場別）と <code>bgm/common/&lt;cue&gt;.mp3</code>（fanfare/result/close/race）。未配置のcueは無音（ゲームは動きます）。</div>
+  </div>
+  <table>
+    <tr><th>役割</th><th>開くURL</th><th>端末</th></tr>
+    <tr><td>📺 投影（大画面）</td><td><code>https://kamisense-015-production.up.railway.app/screen</code></td><td>プロジェクター/大型モニタ</td></tr>
+    <tr><td>🎛 運営</td><td><code>https://kamisense-015-production.up.railway.app/admin</code></td><td>MCの手元PC/タブレット</td></tr>
+    <tr><td>🏁 挑戦者（×6）</td><td><code>https://kamisense-015-production.up.railway.app/player</code></td><td>挑戦者各自のスマホ</td></tr>
+    <tr><td>🎫 観客（投票）</td><td><code>https://kamisense-015-production.up.railway.app/vote</code></td><td>観客のスマホ</td></tr>
+  </table>
+  <div class="note"><span class="tag">導線</span>観客は<b>投影ロビーのQR</b>から <code>/vote</code> に参加。<b>挑戦者URL(<code>/player</code>)は投影に出さず、運営画面からコピーして指定6人へ個別に送る</b>（誤参加防止）。</div>
+
+  <h2>2. 当日の進行フロー（1ラウンド）</h2>
+  <div class="flow">
+    <div class="step"><b>会場を選ぶ</b>：運営ロビーの「1部 鳴門 / 2部 児島 / 3部 丸亀」から今の部を選択 → 投影のBGMがその会場に切替。</div>
+    <div class="step"><b>挑戦者エントリー</b>：6人が各自スマホ(<code>/player</code>)で号艇を選んで参加。投影ロビーに枠が点灯。周回展示BGMが流れる。</div>
+    <div class="step"><b>「投票フェーズへ」</b>を押す → 観客が投影QRから <code>/vote</code> で優勝を予想投票。オッズがリアルタイム変動。</div>
+    <div class="step"><b>「投票締切 → スタート勝負」</b>を押す → 締切音→ファンファーレ→大時計スタート。6人が<b>同時</b>に、大時計が消えたら感覚でPUSH（走行音）。</div>
+    <div class="step"><b>全員完了で自動的に結果へ</b>（手動なら「結果発表へ」）。0秒に近い順の着順を投影。</div>
+    <div class="step"><b>「結果・プレゼント発表」</b> → 優勝者＆商品プレゼント演出。優勝を当てた観客が対象。</div>
+    <div class="step"><b>「次のラウンド（同メンバー）」</b>で次へ。会場を変える部では、運営ロビーで会場を選び直す。</div>
+  </div>
+
+  <h2>3. 音（BGM）の流れ</h2>
+  <div class="card">
+    <b>周回展示（会場BGM・ループ）</b> → <b>締切音</b> → <b>ファンファーレ（全国共通）</b> → <b>走行音</b> → <b>結果発表</b>、をゲーム進行に合わせて<b>自動で素早く切替</b>。
+    冒頭の会場選択で <b>1部 鳴門 / 2部 児島 / 3部 丸亀</b> の場内BGMが切り替わります。<br>
+    ※ 音源は<b>ローカルmp3を事前配置</b>（<code>bgm/</code> 内）。ネット不要・広告なしで確実に鳴ります。最初の画面クリックで音声解禁。
+  </div>
+
+  <h2>4. トラブル対応</h2>
+  <table>
+    <tr><th>症状</th><th>対処</th></tr>
+    <tr><td>運営画面を誤ってリロードした</td><td><b>問題なし。自動で"続きから"復帰します</b>（進行状態はサーバー保存）。</td></tr>
+    <tr><td>サーバーが落ちた</td><td>再度 <code>node server.js</code>。<b>前回の進行状態を復元</b>して続行できます。</td></tr>
+    <tr><td>スマホが「未接続」表示</td><td>ネット接続を確認（Wi-Fi／モバイル回線）。ブラウザを再読込。URLが合っているか確認。</td></tr>
+    <tr><td>音が鳴らない</td><td>投影画面を1回クリック（音声解禁）。🔊ボタンでミュート解除。mp3が <code>bgm/&lt;会場&gt;/parade.mp3</code> ・ <code>bgm/common/&lt;cue&gt;.mp3</code> に置いてあるか確認。</td></tr>
+    <tr><td>挑戦者が参加できない</td><td><code>/player</code> URLを個別に再送。既に埋まった号艇は選べません（別の号艇へ）。</td></tr>
+    <tr><td>やり直したい</td><td>運営の「最初から」で全リセット。会場選択は保持されます。</td></tr>
+  </table>
+
+  <h2>5. 注意点</h2>
+  <ul>
+    <li>投影に出すのは<b>観客の投票QRだけ</b>。挑戦者URLは個別配布（誤参加防止）。</li>
+    <li>運営画面(<code>/admin</code>)は<b>ゲームの頭脳</b>。開きっぱなしにしてください（閉じても復旧はできますが、開いていること前提）。</li>
+    <li><b>公開URL運用</b>：各端末がネットに繋がっていれば、同じWi-Fiでなくても・会場外/遠隔からも同じURLで参加できます。</li>
+    <li>運営画面(<code>/admin</code>)に <b>挑戦者・観客のQR</b> があります。挑戦者QRは指定6人だけに見せ、投票QRは観客へ（投影ロビーにも表示）。</li>
+  </ul>
+
+  <div class="sub" style="margin-top:30px">株式会社エスノヴァ ／ ボートレースPRイベント用</div>
+</div>
+</body>
+</html>

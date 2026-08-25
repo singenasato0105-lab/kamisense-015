@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>挑戦者 ／ 神センス0.15チャレンジ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .pickgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;}
+  .pk{position:relative; display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; cursor:pointer; border:1px solid var(--line); background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.01));}
+  .pk .kw{width:40px;height:40px;font-size:20px;}
+  .pk .lb{font-weight:800; font-size:15px;}
+  .pk.taken{opacity:.4; pointer-events:none;}
+  .pk.sel{outline:2px solid var(--gold);}
+  .namein{margin-top:12px; width:100%; background:rgba(255,255,255,.06); border:1px solid var(--line); color:#fff; border-radius:12px; padding:14px; font-size:16px;}
+  .big-badge{display:inline-grid; place-items:center; width:70px;height:70px;border-radius:16px; font-family:var(--disp); font-size:38px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc); box-shadow:0 8px 20px rgba(0,0,0,.4);}
+  .big-badge span{transform:skewX(8deg); color:var(--bt);}
+  .myst{font-family:var(--disp); font-size:clamp(60px,20vw,120px); line-height:1; color:#fff;}
+  .myst .s{font-family:var(--jp); font-style:italic; font-size:.26em; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="brand"><span class="live">LIVE</span> ・ 挑戦者 PLAYER</div>
+<button class="mute" id="mute">🔊</button>
+<div class="flash" id="flash"></div>
+<div class="wrap">
+  <!-- JOIN -->
+  <section class="screen on" id="s_join">
+    <div class="kicker">Entry</div>
+    <div class="title" style="font-size:clamp(26px,6vw,40px)">号艇をえらぶ</div>
+    <div class="pickgrid" id="pickGrid"></div>
+    <input class="namein" id="nameIn" maxlength="10" placeholder="ニックネーム（10文字まで）">
+    <button class="btn big orange" id="joinBtn">エントリー ▶</button>
+  </section>
+  <!-- WAIT -->
+  <section class="screen" id="s_wait">
+    <div class="kicker" id="waitK">Entry Complete</div>
+    <div class="big-badge" id="myBadge" style="margin:14px auto 0"><span>1</span></div>
+    <div class="title" style="font-size:clamp(22px,5vw,34px); margin-top:10px" id="myName">—</div>
+    <p class="lead" id="waitMsg">エントリー完了！<br>司会の合図でスタートします。画面はそのままで。</p>
+  </section>
+  <!-- RACE -->
+  <section class="screen" id="s_race">
+    <div class="kicker">Your Start</div>
+    <div class="stage" id="stage"></div>
+    <button class="go" id="goBtn" disabled>PUSH</button>
+    <div class="hint">大時計が消えたら感覚でPUSH（0秒に近いほど神スタート）</div>
+  </section>
+  <!-- DONE -->
+  <section class="screen" id="s_done">
+    <div class="kicker">Your Result</div>
+    <div class="title" id="doneVerdict" style="font-size:clamp(24px,6vw,40px)">—</div>
+    <div class="myst en" id="myST">0.00<span class="s">秒</span></div>
+    <p class="lead" id="doneMsg">結果発表をお待ちください。</p>
+  </section>
+</div>
+<div class="conn" id="conn">● 接続中</div>
+<script src="shared.js"></script>
+<script>
+(()=>{ "use strict";
+  const $=s=>document.querySelector(s);
+  const scr={join:$('#s_join'),wait:$('#s_wait'),race:$('#s_race'),done:$('#s_done')};
+  function show(n){ for(const k in scr) scr[k].classList.toggle('on',k===n); window.scrollTo(0,0); }
+  document.body.insertAdjacentHTML('afterbegin', sceneHTML());
+  $('#stage').innerHTML=clockSVG()+'<div class="cdnum en" id="cdnum">10</div><div class="blindmsg" id="blind"><div class="big">感覚で押せ！</div><div class="small">AIM 0.15</div></div>';
+  const bus=makeBus('player');
+  const AUTO=(function(){ const m=location.search.match(/[?&]auto=(\d+)/); return m?(+m[1]-1):null; })();   // ウォール確認用：自動参加＋自動PUSH
+  const AUTONAME=(function(){ const m=location.search.match(/[?&]name=([^&]+)/); try{ return m?decodeURIComponent(m[1]):null; }catch(e){ return m?m[1]:null; } })();   // 固定名（例：安里信弦）
+  let myBoat=null, cur=null, sel=null, phase='lobby', pressed=false, done=false, autoTimer=0;
+  $('#mute').addEventListener('click',()=>{ const m=$('#mute').textContent==='🔊'; setMuted(m); $('#mute').textContent=m?'🔇':'🔊'; if(!m){AC(); tone(880,0,.08,'sine',.12);} });
+
+  function buildPick(){ const g=$('#pickGrid'); let h=''; for(let i=0;i<N;i++){ const taken=cur&&cur.joined&&cur.joined[i]&&i!==myBoat; h+=`<div class="pk ${taken?'taken':''} ${sel===i?'sel':''}" data-i="${i}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><div class="lb">${i+1}号艇</div></div>`; } g.innerHTML=h;
+    g.querySelectorAll('.pk').forEach(p=>p.addEventListener('click',()=>{ sel=+p.dataset.i; buildPick(); })); }
+  buildPick();
+  if(AUTO!=null && AUTO>=0 && AUTO<N){   // 自動参加（ウォール確認用）
+    myBoat=AUTO; sel=AUTO; const anm=AUTONAME||((myBoat+1)+'号艇'); bus.post({type:'join',src:'player',boat:myBoat,name:anm});
+    try{ $('#myBadge').style.setProperty('--bc',COL[myBoat].b); $('#myBadge').style.setProperty('--bt',COL[myBoat].t); $('#myBadge').innerHTML='<span>'+(myBoat+1)+'</span>'; $('#myName').textContent=anm; }catch(e){}
+    show('wait');
+  }
+  $('#joinBtn').addEventListener('click',()=>{ if(sel==null){ alert('号艇を選んでください'); return; } const nm=($('#nameIn').value||'').trim().slice(0,10)||('挑戦者'+String.fromCharCode(65+sel)); myBoat=sel;
+    bus.post({type:'join',src:'player',boat:myBoat,name:nm}); AC();
+    $('#myBadge').style.setProperty('--bc',COL[myBoat].b); $('#myBadge').style.setProperty('--bt',COL[myBoat].t); $('#myBadge').innerHTML='<span>'+(myBoat+1)+'</span>'; $('#myName').textContent=nm;
+    show('wait'); });
+
+  // 大時計ローカル計測
+  const cdnum=()=>$('#cdnum'), blind=()=>$('#blind'), hand=()=>$('#hand'), prog=()=>$('#progress'), clk=()=>$('#clockSvg');
+  let raf=0,t0=0,hidden=false,lastB=99,goAtV=0;
+  function startRace(){ show('race'); pressed=false; hidden=false; lastB=99; done=false;
+    $('#goBtn').removeAttribute('disabled');
+    cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10';
+    prog().style.strokeDashoffset=RING_LEN; hand().style.transform='';
+    t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);   // t0を真の発走時刻(goAt)にアンカー＝setTimeout誤差を打ち消す
+    if(AUTO!=null){ const target=0.06+Math.abs((myBoat*0.017+0.03)%0.10); clearTimeout(autoTimer); autoTimer=setTimeout(()=>{ if(!pressed&&phase==='countdown')doPress(true); }, (ZERO_AT+target)*1000); } }
+  function loop(now){ const el=(now-t0)/1000, remain=ZERO_AT-el, frac=Math.min(el/ZERO_AT,1);
+    if(!hidden){ prog().style.strokeDashoffset=RING_LEN*(1-frac); hand().style.transform=`rotate(${frac*360}deg)`; hand().style.transformOrigin='100px 100px';
+      if(remain>HIDE_REMAIN){ cdnum().textContent=Math.max(0,Math.ceil(remain)); const s=Math.ceil(remain); if(s!==lastB){lastB=s; tone(760,0,.06,'sine',.14);} }
+      else { hidden=true; cdnum().classList.add('hide'); blind().classList.add('on'); clk().classList.add('gone'); } }
+    if(!pressed && el<ZERO_AT+2.5){ raf=requestAnimationFrame(loop); } else if(!pressed){ doPress(true); } }
+  function doPress(auto){ if(pressed||phase!=='countdown')return; pressed=true; cancelAnimationFrame(raf); if(!auto)engineRev();
+    $('#goBtn').setAttribute('disabled','');
+    const st=(performance.now()-t0)/1000-ZERO_AT; done=true;
+    bus.post({type:'result',src:'player',boat:myBoat,st:st});
+    const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c;
+    $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; $('#myST').style.color=(st<0?'var(--red)':'#fff');
+    if(st<0){flashFx('f'); tone(150,0,.5,'sine',.22);} else if(st<=0.09){flashFx('p'); tone(1040,0,.12,'sine',.2);} else tone(560,0,.12,'sine',.16);
+    show('done'); }
+  $('#goBtn').addEventListener('click',()=>{ if(!pressed){doPress(false);} });
+  document.addEventListener('keydown',e=>{ if((e.code==='Space'||e.code==='Enter')&&phase==='countdown'&&!pressed){ e.preventDefault(); doPress(false);} });
+  function flashFx(c){ const f=$('#flash'); f.className='flash '+c; setTimeout(()=>f.className='flash',600); }
+
+  bus.onMessage(m=>{
+    if(m.type==='state'){ cur=m.s; onState(m.s); }
+    else if(m.type==='go'){ if(myBoat!=null && cur && cur.joined[myBoat] && !done){ phase='countdown'; goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); setTimeout(()=>{ if(phase==='countdown'&&!done)startRace(); }, Math.max(0,delay)); } }
+  });
+  function onState(s){
+    const prev=phase; phase=s.phase;
+    if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
+    else if(s.phase==='vote'){ if(myBoat!=null){ show('wait'); $('#waitK').textContent='Voting'; $('#waitMsg').innerHTML='お客さんが優勝予想中…<br>まもなくあなたの番です。'; } else { show('join'); } }
+    else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
+    else if(s.phase==='result'||s.phase==='prize'){ if(myBoat!=null){ if(done){ show('done'); const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; }
+        const order=ranking(s.results); const win=order[0]; const iWon=(win===myBoat && s.results[win]!=null && s.results[win]>=0);
+        $('#doneMsg').innerHTML= iWon? '🏆 優勝！おめでとうございます！' : '結果は大画面をチェック！'; }
+      else { show('wait'); $('#waitMsg').textContent='結果発表中です。大画面をご覧ください。'; } } }
+  }
+})();
+</script>
+</body>
+</html>

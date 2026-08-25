@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>投影 ／ 神センス0.15チャレンジ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  /* ===== 16:9 横型モニター固定（1280×720キャンバスをスケール） ===== */
+  html,body{height:100%; margin:0; overflow:hidden; background:#000;}
+  #tv{position:absolute; top:50%; left:50%; width:1280px; height:720px; overflow:hidden; background:var(--bg0);
+      transform-origin:center center; transform:translate(-50%,-50%) scale(1); container-type:size;}
+  #tv .wrap{max-width:1100px; margin:0 auto; min-height:100%; height:100%;}
+  #tv .screen{max-width:1100px; margin:0 auto;}
+  /* vw/vh を canvas基準(cqw/cqh)へ置換し、どの表示枠でも16:9で同じ見た目に固定 */
+  #tv .g-teal{width:130cqw; height:80cqh; left:-15cqw; top:-34cqh;}
+  #tv .g-orange{width:90cqw; height:65cqh; right:-25cqw; bottom:-30cqh;}
+  #tv .title{font-size:clamp(30px,7.5cqw,56px);}
+  #tv .qtext{font-size:clamp(17px,3.6cqw,23px);}
+  #tv .qrjoin{gap:6cqw; margin-top:2.6cqh;}
+  #tv .binfo .nm{font-size:clamp(15px,3.4cqw,19px);}
+  #tv .odds{font-size:clamp(19px,4.6cqw,25px);}
+  #tv .stc{font-size:clamp(19px,4.6cqw,26px);}
+  #tv .cdnum{font-size:clamp(88px,26cqw,150px);}
+  #tv .blindmsg .big{font-size:clamp(26px,7cqw,38px);}
+  #tv .paywin{font-size:clamp(26px,6.5cqw,46px);}
+  #tv .paymul{font-size:clamp(64px,18cqw,120px);}
+  .lobbyboats{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:22px;}
+  .lb{position:relative; width:92px; text-align:center;}
+  .lb .kw{width:62px;height:62px;font-size:30px; margin:0 auto;}
+  .lb .lbn{margin-top:7px; font-weight:800; font-size:14px; min-height:1.2em;}
+  .qrcta{margin-top:2.4cqh; font-family:var(--jp); font-weight:900; font-style:italic; font-size:clamp(20px,3cqw,34px); color:transparent; background:linear-gradient(180deg,var(--gold),var(--orange)); -webkit-background-clip:text; background-clip:text;}
+  .qrjoin .qrcard{padding:18px 18px 12px;}
+  .qrjoin .qrcard .qimg{width:min(26cqw,260px); height:min(26cqw,260px);}
+  .qrjoin .qrcard .qlbl{font-size:clamp(15px,2cqw,22px);}
+  .lb.empty{opacity:.35;}
+  .lb .waitdot{font-family:var(--lab); font-size:12px; color:var(--muted);}
+  .joinurls{margin-top:26px; display:flex; gap:30px; justify-content:center; flex-wrap:wrap; font-family:var(--lab); font-size:18px;}
+  .joinurls b{color:var(--gold);} .joinurls code{background:rgba(255,255,255,.08); padding:4px 12px; border-radius:8px;}
+  .bigcount{margin-top:16px; font-family:var(--jp); font-weight:900; font-style:italic; font-size:clamp(22px,4cqw,34px); color:var(--gold);}
+  /* ===== 結果発表レース演出 ===== */
+  #s_reveal{position:absolute; inset:0; z-index:6; display:none; overflow:hidden; background:radial-gradient(120% 90% at 50% 18%,#06202e,#03121c 68%,#01080e); cursor:pointer;}
+  #s_reveal.on{display:block;}
+  #revealCanvas{position:absolute; inset:0; width:1280px; height:720px;}
+  .rev-title{position:absolute; top:33%; left:0; right:0; text-align:center; font-family:var(--jp); font-weight:900; font-style:italic; font-size:74px; letter-spacing:.04em; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff 55%,#7fd0ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 8px 30px rgba(47,228,255,.45)); opacity:0; transform:scale(.9); transition:opacity .4s,transform .4s; pointer-events:none;}
+  .rev-title.show{opacity:1; transform:scale(1);}
+  .rev-title .sub{display:block; font-size:20px; font-family:var(--lab); letter-spacing:.32em; font-style:normal; -webkit-text-fill-color:#8fb3c8; margin-top:10px;}
+  .rev-winner{position:absolute; left:0; right:0; top:8%; padding:22px 0 30px; text-align:center; opacity:0; transform:translateY(26px); transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1); pointer-events:none; text-shadow:0 3px 16px rgba(0,0,0,.75); background:radial-gradient(90% 130% at 50% 30%, rgba(3,11,18,.82), rgba(3,11,18,0) 72%);}
+  .rev-winner.show{opacity:1; transform:translateY(0);}
+  .rev-winner .lbl{font-family:var(--lab); letter-spacing:.34em; font-size:20px; color:#ffe08a;}
+  .rev-winner .nm{font-family:var(--jp); font-weight:900; font-style:italic; font-size:72px; line-height:1.05; margin-top:8px; color:#fff; display:flex; gap:22px; align-items:center; justify-content:center; padding:0 40px;}
+  .rev-winner .kwbig{flex:none; width:84px; height:84px; border-radius:16px; display:grid; place-items:center; font-family:var(--disp); font-size:44px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc,#888); box-shadow:inset 0 0 0 2px rgba(255,255,255,.35),0 8px 22px rgba(0,0,0,.5),0 0 30px -4px var(--bc,#888); -webkit-text-fill-color:var(--bt,#fff); color:var(--bt,#fff);}
+  .rev-winner .st{font-family:var(--disp); font-size:36px; color:#fff; margin-top:14px; letter-spacing:.06em;}
+  .rev-winner .st b{color:var(--gold); font-size:54px;}
+  .rev-winner .champ{display:inline-block; font-family:var(--lab); font-weight:900; letter-spacing:.22em; font-size:16px; color:#3a2600; background:linear-gradient(180deg,#ffe9a8,var(--gold)); padding:5px 16px; border-radius:9px; transform:skewX(-6deg); margin-bottom:12px; box-shadow:0 8px 22px rgba(255,210,74,.45);}
+  .rev-winner .nmtxt{display:inline-block; color:transparent; background:linear-gradient(180deg,#fff6d6,var(--gold) 55%,#e89b1c); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 3px 3px rgba(0,0,0,.7)) drop-shadow(0 8px 22px rgba(255,210,74,.45));}
+  .rev-vote{position:absolute; left:0; right:0; bottom:11%; text-align:center; opacity:0; transform:translateY(20px); transition:opacity .5s,transform .5s; pointer-events:none;}
+  .rev-vote.show{opacity:1; transform:translateY(0);}
+  .rev-vote .hit{font-family:var(--jp); font-weight:900; font-size:34px; color:#fff;}
+  .rev-vote .hit b{color:var(--cyan); font-size:46px;}
+  .rev-vote .sub2{font-family:var(--lab); letter-spacing:.22em; color:#9fc0d8; font-size:16px; margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="tv">
+<div class="brand"><span class="live">LIVE</span> ・ 神センス！スタートタイミング「0.15」チャレンジ</div>
+<button class="mute" id="mute">🔊</button>
+<div class="flash" id="flash"></div>
+<div class="wrap">
+  <!-- LOBBY -->
+  <section class="screen on" id="s_lobby">
+    <div class="kicker">神センス！ Boat Racer Start Timing</div>
+    <div class="title">スタートタイミング<br><span class="accent en">「0.15」</span>チャレンジ</div>
+    <div class="lobbyboats" id="lobbyBoats"></div>
+    <div class="qrcta">観客の皆さんは QR から予想投票にご参加ください！</div>
+    <div class="qrjoin">
+      <div class="qrcard"><div class="qimg" id="qrVote"></div><div class="qlbl">予想投票はこちら</div><div class="qsub" id="uVote">/vote</div></div>
+    </div>
+  </section>
+  <!-- VOTE -->
+  <section class="screen" id="s_vote">
+    <div class="qtext" style="text-align:center">誰が神スタートを決める？　お客さんは優勝を予想投票！</div>
+    <div class="board">
+      <div class="bhead"><span class="venue"><span class="rc"></span>Odds ／ 優勝予想</span><span class="rno"><span id="rnoV">R1</span></span></div>
+      <div class="colhead"><span>枠</span><span>挑戦者 ／ 投票</span><span>票</span><span>オッズ</span></div>
+      <div id="voteRows"></div>
+    </div>
+    <div class="totline">総投票 <b id="totVotes">0</b> 票　<span style="color:var(--cyan)">● 投票受付中</span></div>
+  </section>
+  <!-- COUNTDOWN -->
+  <section class="screen" id="s_count" style="text-align:center">
+    <div class="qtext">スタート勝負！　大時計が消えたら感覚でPUSH</div>
+    <div class="stage" id="stage" style="max-width:420px"></div>
+    <div class="bigcount" id="doneCount">0 / 0 完了</div>
+  </section>
+  <!-- RESULT -->
+  <section class="screen" id="s_result">
+    <div class="qtext" style="text-align:center">結果発表 ／ 0秒にいちばん近い神スタートは？</div>
+    <div class="board standings">
+      <div class="bhead"><span class="venue"><span class="rc"></span>Result ／ 着順</span><span class="rno"><span id="rnoR">R1</span></span></div>
+      <div class="colhead"><span>枠</span><span>挑戦者</span><span>ST</span><span>オッズ</span></div>
+      <div id="resultRows"></div>
+    </div>
+  </section>
+  <!-- PRIZE -->
+  <section class="screen" id="s_prize" style="text-align:center">
+    <div class="qhead">🎁 Prize ／ 商品プレゼント</div>
+    <div class="paywin" id="payWin">—</div>
+    <div class="paymul en" id="payMul">×0.0</div>
+    <div class="paynote" id="payNote"></div>
+  </section>
+</div>
+<div id="s_reveal">
+  <canvas id="revealCanvas" width="1280" height="720"></canvas>
+  <div class="rev-title" id="revTitle">結果発表<span class="sub">WHO GOT THE 神スタート ?</span></div>
+  <div class="rev-winner" id="revWinner"></div>
+  <div class="rev-vote" id="revVote"></div>
+</div>
+<div class="conn" id="conn">● 接続中</div>
+</div><!-- #tv -->
+<script src="qrcode.min.js"></script>
+<script src="shared.js"></script>
+<script src="bgm.js"></script>
+<script src="bgm.js"></script>
+<script>
+(()=>{ "use strict";
+  const $=s=>document.querySelector(s);
+  const TV=document.getElementById('tv');
+  TV.insertAdjacentHTML('afterbegin', sceneHTML());
+  // 16:9 横型モニター固定：1280×720キャンバスを画面に収まるよう等倍スケール（レターボックス）
+  function fitTV(){ const s=Math.min(window.innerWidth/1280, window.innerHeight/720); TV.style.transform='translate(-50%,-50%) scale('+s+')'; }
+  fitTV(); window.addEventListener('resize', fitTV); window.addEventListener('orientationchange', fitTV);
+  $('#stage').innerHTML=clockSVG()+'<div class="cdnum en" id="cdnum">10</div><div class="blindmsg" id="blind"><div class="big">感覚勝負！</div><div class="small">AIM 0.15</div></div>';
+  const scr={lobby:$('#s_lobby'),vote:$('#s_vote'),count:$('#s_count'),result:$('#s_result'),prize:$('#s_prize')};
+  function show(n){ for(const k in scr) scr[k].classList.toggle('on',k===n); }
+  const base=appUrl(); $('#uVote').textContent=base+'vote';
+  function mkQR(id,url){ try{ const el=document.getElementById(id); if(el && window.QRCode){ el.innerHTML=''; new QRCode(el,{text:url,width:300,height:300,colorDark:'#0e2b42',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); } }catch(e){} }
+  mkQR('qrVote', base+'vote');
+  const bus=makeBus('screen');
+  let cur=null, prevPhase='', prevPrize=false, revealing=false, revRaf=0, sndOff=false;
+  function playBGM(cue,opt){ if(!sndOff){ try{ BGM.play(cue,opt); }catch(e){} } }   // サウンドOFF中は一切鳴らさない
+  $('#mute').addEventListener('click',(e)=>{ e.stopPropagation(); sndOff=!sndOff; setMuted(sndOff); try{BGM.setMute(sndOff);}catch(x){}
+    $('#mute').textContent=sndOff?'🔇':'🔊'; $('#mute').title=sndOff?'サウンドOFF（クリックでON）':'サウンドON（クリックでOFF）';
+    if(sndOff){ try{BGM.stop();}catch(x){} }   // 完全停止（作業中の騒音対策）
+    else { AC(); tone(880,0,.08,'sine',.12); if(cur&&(cur.phase==='lobby'||cur.phase==='vote'))playBGM('parade',{loop:true}); } });
+  document.addEventListener('click',()=>{ AC(); const p=(cur&&cur.phase)||'lobby'; if(p==='countdown')playBGM('fanfare'); else if(p!=='result'&&p!=='prize')playBGM('parade',{loop:true}); else playBGM('parade',{loop:true}); },{once:true});   // どのphaseでもクリックで音声解禁（結果中も一旦paradeで解禁だけ→次のcueへ）
+
+  function names(){ return (cur&&cur.names)||new Array(N).fill(null); }
+  function buildLobby(){ const nm=names(), jn=(cur&&cur.joined)||[]; let h='';
+    for(let i=0;i<N;i++){ const j=jn[i]; const lbn=j?esc(nm[i]||''):'<span class="waitdot">参加待ち</span>'; h+=`<div class="lb ${j?'':'empty'}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><div class="lbn">${lbn}</div></div>`; }
+    $('#lobbyBoats').innerHTML=h; }
+  function buildVote(){ const nm=names(), vt=(cur&&cur.votes)||new Array(N).fill(0), fav=favIndex(vt), max=Math.max(1,...vt); let h='';
+    for(let i=0;i<N;i++){ const pct=(vt[i]/max*100); h+=`<div class="brow ${i===fav?'fav':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><div class="binfo"><div class="nm"><span class="txt">${esc(nm[i]||(i+1+'号艇'))}</span><span class="tag"><span>人気</span></span></div><div class="sub2"><span class="lane"><i class="trail" style="width:${pct}%"></i>${boatSVG()}${turnSVG()}</span></div></div><div class="odds oddscell">${oddsHTML(odds(vt,i))}<span class="vc">${vt[i]||0}票</span></div></div>`; }
+    $('#voteRows').innerHTML=h;
+    $('#voteRows').querySelectorAll('.brow').forEach((r,i)=>{ const vt2=(cur&&cur.votes)||[]; const max2=Math.max(1,...vt2); const bi=+r.querySelector('.kw span').textContent-1; const b=r.querySelector('.boaticon'); if(b) b.style.left=(2+(vt2[bi]/max2*100)*0.86)+'%'; });
+    $('#totVotes').textContent=vt.reduce((a,b)=>a+b,0); }
+  function buildResult(){ const s=cur, order=ranking(s.results), rankOf={}; order.forEach((idx,r)=>rankOf[idx]=r); const win=order[0], validWin=(s.results[win]!=null&&s.results[win]>=0); const nm=names(); let h='';
+    order.forEach((i,rank)=>{ const st=s.results[i]; const stc= st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>');
+      h+=`<div class="brow ${(validWin&&rank===0)?'win':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><span class="rankbadge"><span>${rank+1}着</span></span><div class="binfo"><div class="nm"><span class="txt">${esc(nm[i]||(i+1+'号艇'))}</span></div></div>${stc}<div class="odds">${oddsHTML(odds(s.votes,i))}</div></div>`; });
+    $('#resultRows').innerHTML=h; }
+  function buildPrize(){ const s=cur, order=ranking(s.results), win=order[0], valid=(s.results[win]!=null&&s.results[win]>=0), nm=names();
+    if(!valid){ $('#payWin').textContent='優勝なし'; $('#payMul').innerHTML='—'; $('#payNote').textContent='全員フライング…次のラウンドへ！'; return; }
+    const total=s.votes.reduce((a,b)=>a+b,0), share=total?Math.round(s.votes[win]/total*100):0;
+    $('#payWin').innerHTML=`優勝 <span class="winbadge" style="--bc:${COL[win].b};--bt:${COL[win].t}"><span>${win+1}</span></span> <span style="color:var(--gold)">${esc(nm[win]||'')}</span>（${s.results[win].toFixed(2)}秒）`;
+    $('#payMul').innerHTML=`<span style="-webkit-text-fill-color:initial;color:initial;background:none;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))">🎁</span>`;
+    $('#payNote').innerHTML=`${win+1}号艇「${esc(nm[win]||'')}」を予想的中した方に <b>商品プレゼント！</b><br>的中は投票者の <b>${share}%</b>。`;
+    if(!prevPrize){ flashFx('p'); confetti(); fanfare(); } prevPrize=true; }
+  function flashFx(c){ const f=$('#flash'); f.className='flash '+c; setTimeout(()=>f.className='flash',700); }
+
+  // ===== 結果発表レース演出（艇が走ってゴール→勝者→票の的中）=====
+  function stopReveal(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; const r=$('#s_reveal'); if(r)r.classList.remove('on'); ['#revTitle','#revWinner','#revVote'].forEach(id=>{const e=$(id); if(e)e.classList.remove('show');}); const cv=$('#revealCanvas'); if(cv)cv.onclick=null; }
+  function drumroll(){ try{ AC(); for(let k=0;k<20;k++){ tone(80+k*3, Math.max(0,k*(0.055-k*0.001)), 0.05,'square',0.09); } }catch(e){} }
+  function runReveal(s){
+    const cv=$('#revealCanvas'); if(!cv||!cv.getContext){ show('result'); buildResult(); return; }
+    revealing=true; const ctx=cv.getContext('2d'), W=1280, H=720;
+    const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const KCOL=[]; for(let z=1;z<=6;z++) KCOL.push({b:cssv('--k'+z)||'#fff', t:cssv('--k'+z+'t')||'#111'});   // CanvasはCSS変数を解釈しないので実色に解決
+    const nm=names(), order=ranking(s.results), win=order[0], validWin=(s.results[win]!=null&&s.results[win]>=0);
+    const lanes=[]; for(let i=0;i<N;i++){ if(s.joined[i]||s.results[i]!=null) lanes.push(i); } if(!lanes.length) for(let i=0;i<N;i++)lanes.push(i);
+    const validOrder=order.filter(i=> s.results[i]!=null && s.results[i]>=0);
+    const allFoul=lanes.length>0 && lanes.every(i=> s.results[i]!=null && s.results[i]<0);   // 全員フライング
+    const START=1.5, RACE=13, HOLD=5, GAP=0.28;
+    const finTime={}; lanes.forEach(i=>{ const st=s.results[i];
+      if(st!=null&&st>=0) finTime[i]=RACE + validOrder.indexOf(i)*GAP;
+      else if(st!=null&&st<0) finTime[i]=RACE+1.6+(i%3)*0.4;   // フライング=遅れ
+      else finTime[i]=RACE+2.4; });
+    const finishRaceT = validWin ? finTime[win] : 3.4;   // 全員フライング/該当者なしは短く切り上げ
+    // ===== スタジアム型コース（1周してゴール）=====
+    const R=200, x1=380, x2=1180, cyC=400, Ls=x2-x1, yB=cyC+R, yT=cyC-R;
+    const HH=Ls/2, xc=(x1+x2)/2, segT=Math.PI*R;                        // ホーム直線の半分／中央=センターポール（スタート=ゴール）／ターン弧長
+    const D_T1=HH, D_BS=HH+segT, D_T2=HH+segT+Ls, D_HM=HH+segT+Ls+segT; // 区間開始距離：1マーク／向正面／2マーク／最後のホーム半分
+    const seg=[HH, segT, Ls, segT], perim=2*Ls+2*segT;                  // 周長は不変（2直線+2ターン）
+    const foul=i=>(s.results[i]!=null&&s.results[i]<0);   // フライング（号砲前スタート＝失格）
+    const FPULL=1.7, FJUMP=perim*0.13;                    // フライング：飛び出し量と失速完了時刻
+    const capBoat=(order.length>=5 && s.results[order[4]]!=null && s.results[order[4]]>=0)?order[4]:-1;   // 5位（有効艇）＝転覆させる
+    const capsizeDist=D_T1+segT*0.5;                      // 1マーク付近で転覆
+    let capTrigT=-1;                                      // 転覆した時刻(raceT)
+    // 反時計回り（左回り＝実際のボートレース）。d=0＝ホーム直線の中央＝センターポール＝スタート/ゴール（同一）。中央→右(1M)→向正面→左(2M)→中央
+    function courseXY(d){ d=((d%perim)+perim)%perim;
+      if(d<HH) return {x:xc+d, y:yB};                                                              // ホーム中央→右端
+      d-=HH; if(d<segT){ const a=Math.PI/2-d/R; return {x:x2+R*Math.cos(a), y:cyC+R*Math.sin(a)}; }// 1マーク（右で回頭）
+      d-=segT; if(d<Ls) return {x:x2-d, y:yT};                                                     // 向正面を左へ
+      d-=Ls; if(d<segT){ const a=3*Math.PI/2-d/R; return {x:x1+R*Math.cos(a), y:cyC+R*Math.sin(a)}; }// 2マーク（左で回頭）
+      d-=segT; return {x:x1+d, y:yB}; }                                                            // 左端→ホーム中央（ゴール）
+    function heading(d){ const a=courseXY(d-1.5), b=courseXY(d+1.5); return Math.atan2(b.y-a.y, b.x-a.x); }
+    const laneGap=17, midL=(lanes.length-1)/2;
+    function boatPos(i,d){ const c=courseXY(d), ang=heading(d); let off=(lanes.indexOf(i)-midL)*laneGap;
+      if(foul(i)) off += Math.min(Math.max(raceT-FPULL,0)*80, 150);   // フライングは失速後コース外へ逸れて退避
+      return {x:c.x+Math.cos(ang+Math.PI/2)*off, y:c.y+Math.sin(ang+Math.PI/2)*off, ang:ang}; }
+    function distOf(i){
+      if(foul(i)){ const p=Math.min(raceT/FPULL,1); return perim*0.03 + (FJUMP-perim*0.03)*(1-Math.pow(1-p,2)); }   // 号砲前に飛び出し→すぐ失速して停止（周回しない）
+      const rt=Math.min(raceT/finTime[i],1); let d=perim*(rt + (1-rt)*0.05*Math.sin(raceT*1.2+i*2.1));
+      if(i===capBoat && d>capsizeDist) d=capsizeDist;   // 転覆＝1マークで停止
+      return d; }
+    const t0=performance.now(); let launched=false, finished=false, finishAt=0, raceT=0, lastFrame=performance.now();
+    const cam={x:(x1+x2)/2, y:cyC, z:0.62};
+    const sparks=[]; for(let n=0;n<90;n++) sparks.push({x:x1-R+Math.random()*((x2-x1)+2*R), y:yT-30+Math.random()*(2*R+60), p:Math.random()*6.28, s:0.6+Math.random()});
+    $('#revWinner').classList.remove('show'); $('#revWinner').innerHTML=''; $('#revVote').classList.remove('show'); $('#revVote').innerHTML='';
+    $('#s_reveal').classList.add('on'); $('#revTitle').classList.add('show'); drumroll();
+    playBGM('race',{loop:true});   // ※クリックでのスキップは無効（音声解禁クリックで演出が飛ぶのを防止。進行は運営ボタンで）
+    function drawWater(T){
+      const g=ctx.createLinearGradient(0,yT-160,0,yB+160); g.addColorStop(0,'#0b3f57'); g.addColorStop(.55,'#063242'); g.addColorStop(1,'#03151f');
+      ctx.fillStyle=g; ctx.fillRect(x1-R-220,yT-180,(x2-x1)+2*R+440,2*R+360);
+      ctx.lineWidth=2;
+      for(let L=0;L<2;L++){ ctx.strokeStyle='rgba(150,215,250,'+(L?0.04:0.07)+')';
+        for(let y=yT-140;y<yB+140;y+=(L?34:22)){ ctx.beginPath(); for(let x=x1-R-200;x<=x2+R+200;x+=26){ const yy=y+Math.sin(x*0.018+T*(1.6+L*0.6)+y*0.09)*3.4; x===x1-R-200?ctx.moveTo(x,yy):ctx.lineTo(x,yy);} ctx.stroke(); } }
+      for(const sp of sparks){ const a=0.10+0.16*Math.sin(T*2.2+sp.p); if(a>0){ ctx.globalAlpha=a; ctx.fillStyle='#cfefff'; ctx.fillRect(sp.x,sp.y,1.6*sp.s,1.6*sp.s);} }
+      ctx.globalAlpha=1; }
+    function drawCourse(){ ctx.save(); ctx.lineJoin='round';
+      ctx.beginPath(); for(let d=0;d<=perim;d+=16){ const c=courseXY(d); d===0?ctx.moveTo(c.x,c.y):ctx.lineTo(c.x,c.y);} ctx.closePath();
+      const tw=laneGap*lanes.length+52;
+      ctx.strokeStyle='rgba(60,155,200,.20)'; ctx.lineWidth=tw; ctx.stroke();
+      ctx.strokeStyle='rgba(150,220,255,.10)'; ctx.setLineDash([2,11]); ctx.lineWidth=tw-8; ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(190,232,255,.13)'; ctx.setLineDash([16,18]); ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
+    function buoy(x,y,label){ ctx.save();
+      ctx.strokeStyle='rgba(255,150,80,.22)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,21,0,7); ctx.stroke();
+      ctx.shadowColor='#ff6a1a'; ctx.shadowBlur=14; const bg=ctx.createLinearGradient(x,y-14,x,y+14); bg.addColorStop(0,'#ff9a4a'); bg.addColorStop(1,'#dc410c');
+      ctx.fillStyle=bg; ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,13,0,7); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle='#fff'; ctx.font='900 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label,x,y+.5); ctx.restore(); }
+    function finishLine(){ const half=laneGap*lanes.length/2+18;
+      for(let y=yB-half;y<yB+half;y+=13){ ctx.fillStyle=(Math.floor(y/13)%2)?'#eef6ff':'#0a2230'; ctx.fillRect(xc-7,y,14,13);}   // スタート/ゴール＝ホーム中央=センターポール（チェッカー）
+      ctx.save(); ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=8; ctx.fillStyle='#c81f2d'; ctx.fillRect(xc-52,yB+half+6,104,22); ctx.shadowBlur=0; ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(xc-52,yB+half+6,104,4);   // START/GOAL旗（下端＝スタンド側）
+      ctx.fillStyle='#fff'; ctx.font='900 15px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('START / GOAL',xc,yB+half+17); ctx.restore(); }
+    function boatDraw(i){ const p=boatPos(i,distOf(i)), isFoul=foul(i), col=KCOL[i].b, tcol=KCOL[i].t;
+      const isCap=(i===capBoat&&capTrigT>=0), capAge=isCap?Math.max(0,raceT-capTrigT):0, pulled=(isFoul&&raceT>FPULL), dim=pulled?0.5:1;
+      ctx.save(); ctx.translate(p.x,p.y);
+      if(isCap){ const rr=18+capAge*78, a0=Math.max(0,1-capAge/1.5); ctx.globalAlpha=a0*.85; ctx.strokeStyle='rgba(230,250,255,.9)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(0,0,rr,0,7); ctx.stroke();   // 転覆の水しぶき
+        ctx.fillStyle='#eafcff'; for(let k=0;k<12;k++){ const a2=k*0.55+capAge*1.6; ctx.beginPath(); ctx.arc(Math.cos(a2)*rr*.92,Math.sin(a2)*rr*.92,3,0,7); ctx.fill(); } ctx.globalAlpha=1; }
+      ctx.save(); ctx.rotate(p.ang);
+      if(isCap){ if(capAge<1.2){ ctx.rotate(capAge*6.5); ctx.scale(1,Math.cos(capAge*5)); } else { ctx.rotate(Math.PI*0.85); ctx.scale(1,-0.55); } }   // 回転しながら裏返る
+      ctx.globalAlpha=.26*dim; ctx.fillStyle='#01121a'; ctx.beginPath(); ctx.ellipse(2,7,27,10,0,0,7); ctx.fill(); ctx.globalAlpha=dim;   // 影
+      if(!isCap&&!pulled){ ctx.strokeStyle='rgba(220,248,255,.45)'; ctx.lineWidth=2;   // V字航跡（転覆・失速後は無し）
+        ctx.beginPath(); ctx.moveTo(-20,-4); ctx.quadraticCurveTo(-70,-8,-124,-30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-20,4); ctx.quadraticCurveTo(-70,8,-124,30); ctx.stroke();
+        const pg=ctx.createLinearGradient(-22,0,-72,0); pg.addColorStop(0,'rgba(255,255,255,.9)'); pg.addColorStop(1,'rgba(200,240,255,0)');
+        ctx.fillStyle=pg; ctx.beginPath(); ctx.moveTo(-20,-10); ctx.lineTo(-70,-2); ctx.lineTo(-70,2); ctx.lineTo(-20,10); ctx.closePath(); ctx.fill();
+        for(let k=0;k<8;k++){ const wx=-22-k*6-Math.random()*4, wy=(Math.random()-0.5)*(9+k); ctx.globalAlpha=0.55*(1-k/8); ctx.fillStyle='#eafcff'; ctx.beginPath(); ctx.arc(wx,wy,3.2-k*0.28,0,7); ctx.fill(); } }
+      ctx.globalAlpha=dim; ctx.shadowColor=col; ctx.shadowBlur=16; ctx.fillStyle=col; ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;   // 船体
+      ctx.beginPath(); ctx.moveTo(31,0); ctx.quadraticCurveTo(2,-12,-24,-9); ctx.quadraticCurveTo(-16,0,-24,9); ctx.quadraticCurveTo(2,12,31,0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.strokeStyle='rgba(0,0,0,.22)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(27,0); ctx.lineTo(-18,0); ctx.stroke();   // キール
+      ctx.restore(); ctx.globalAlpha=1;
+      ctx.fillStyle=tcol; ctx.beginPath(); ctx.arc(0,0,10,0,7); ctx.fill();   // 番号（正立）
+      ctx.fillStyle=col; ctx.font='900 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(String(i+1),0,.5);
+      if(isCap){ ctx.fillStyle='#ffd24a'; ctx.font='900 15px sans-serif'; ctx.textAlign='center'; ctx.fillText('転覆',0,-23); }
+      else if(isFoul){ ctx.fillStyle='#ff5a4d'; ctx.font='900 13px sans-serif'; ctx.textAlign='left'; ctx.fillText('フライング',15,-16); }
+      ctx.restore(); }
+    function updateCam(T){ let tx,ty,tz;
+      if(T<START){ tx=(x1+x2)/2; ty=cyC; tz=0.62; }
+      else if(finished){ if(validWin){ const p=boatPos(win,distOf(win)); tx=p.x; ty=p.y-64; tz=1.95; } else { tx=(x1+x2)/2; ty=cyC; tz=0.66; } }   // 勝者に寄る／該当者なしは全景
+      else if(capTrigT>=0 && raceT-capTrigT<1.7){ const p=boatPos(capBoat,distOf(capBoat)); tx=p.x; ty=p.y; tz=1.85; }   // 転覆した瞬間はそこへ寄る
+      else { let lead=lanes[0], md=-1; lanes.forEach(i=>{const d=distOf(i); if(d>md){md=d;lead=i;}}); const p=boatPos(lead,md); tx=p.x; ty=p.y;
+        const dd=((md%perim)+perim)%perim, inTurn=(dd>D_T1&&dd<D_BS)||(dd>D_T2&&dd<D_HM); tz=inTurn?1.65:1.2;
+        if(md>perim*0.9){ tx=xc; ty=yB; tz=1.7; } }
+      const k=finished?0.03:0.06; cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k; cam.z+=(tz-cam.z)*(finished?0.03:0.05); }
+    function draw(T){
+      ctx.setTransform(1,0,0,1,0,0);
+      const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#04202e'); g.addColorStop(1,'#01070d'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      updateCam(T);
+      ctx.setTransform(cam.z,0,0,cam.z, W/2-cam.x*cam.z, H/2-cam.y*cam.z);
+      drawWater(T); drawCourse(); buoy(x2+R-58,cyC,'1'); buoy(x1-R+58,cyC,'2'); finishLine();
+      lanes.slice().sort((a,b)=>distOf(a)-distOf(b)).forEach(i=> boatDraw(i));
+      ctx.setTransform(1,0,0,1,0,0);
+      const vg=ctx.createRadialGradient(W/2,H/2,H*0.34,W/2,H/2,H*0.82); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.42)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);   // ビネット
+      if(finished&&validWin){ ctx.fillStyle='rgba(2,8,14,.5)'; ctx.fillRect(0,0,W,H);
+        const p=boatPos(win,distOf(win)), sx=W/2+(p.x-cam.x)*cam.z, sy=H/2+(p.y-cam.y)*cam.z, fs=Math.max(0,T-finishAt);
+        ctx.save(); ctx.translate(sx,sy); ctx.rotate(T*0.18); ctx.globalCompositeOperation='lighter';   // 光線
+        for(let r=0;r<14;r++){ ctx.rotate(Math.PI*2/14); const ra=0.05+0.03*Math.sin(T*3+r); ctx.fillStyle='rgba(255,235,170,'+ra+')'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(360,-16); ctx.lineTo(360,16); ctx.closePath(); ctx.fill(); }
+        ctx.restore(); ctx.globalCompositeOperation='source-over';
+        const rg=ctx.createRadialGradient(sx,sy,10,sx,sy,200); rg.addColorStop(0,'rgba(255,240,190,.30)'); rg.addColorStop(1,'rgba(255,240,190,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(sx,sy,200,0,7); ctx.fill();
+        for(let n=0;n<26;n++){ const life=((fs*1.1)+(n*0.12))%1.7, ang=n*2.399, rad=26+life*170; const px=sx+Math.cos(ang)*rad*0.72, py=sy+Math.sin(ang)*rad-life*54; ctx.globalAlpha=Math.max(0,1-life/1.7); ctx.fillStyle=n%2?'#fff2b0':'#ffd24a'; ctx.beginPath(); ctx.arc(px,py,2.6,0,7); ctx.fill(); }   // 金の粒子
+        ctx.globalAlpha=1;
+        ctx.setTransform(cam.z,0,0,cam.z, W/2-cam.x*cam.z, H/2-cam.y*cam.z); ctx.save(); ctx.strokeStyle='rgba(255,224,138,.7)'; ctx.lineWidth=3/cam.z; ctx.beginPath(); ctx.arc(p.x,p.y,44,0,7); ctx.stroke(); ctx.restore(); boatDraw(win); ctx.setTransform(1,0,0,1,0,0); }
+    }
+    function onFinish(){ finished=true; finishAt=(performance.now()-t0)/1000; flashFx('p'); $('#revTitle').classList.remove('show');   // タイトルは確実に消す（重なり防止）
+      playBGM('result'); try{ confetti(); }catch(e){}   // 勝者は勝利音(結果cue)＋紙吹雪。ファンファーレは発走＝スタート勝負で鳴る。結果用mp3(bgm/common/result.mp3)を置けば本物に差替
+      const w=$('#revWinner');
+      if(validWin){ w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
+        w.innerHTML='<div class="champ">🏆 CHAMPION ／ 1着</div><div class="lbl">WINNER ／ 神スタート</div><div class="nm"><span class="kwbig" style="--bc:'+COL[win].b+';--bt:'+COL[win].t+'">'+(win+1)+'</span><span class="nmtxt">'+esc(nm[win]||(win+1+'号艇'))+'</span></div><div class="st">ST <b>'+s.results[win].toFixed(2)+'</b> 秒</div>';
+        w.classList.add('show');
+        setTimeout(()=>{ if(!revealing)return; const total=s.votes.reduce((a,b)=>a+b,0), hit=s.votes[win]||0, share=total?Math.round(hit/total*100):0; const v=$('#revVote');
+          v.innerHTML= total? '<div class="hit">🎯 この艇を予想したのは <b>'+hit+'人</b>！（的中率 '+share+'%）</div><div class="sub2">的中した投票者に 商品プレゼント</div>' : '<div class="hit">🎯 まもなく商品プレゼント発表！</div>';
+          v.classList.add('show'); },1500);
+      } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">'+(allFoul?'全員フライング':'優勝者なし')+'</div><div class="st">'+(allFoul?'全艇が号砲前スタート…次のラウンドへ！':'有効なスタートなし')+'</div>'; w.classList.add('show'); } }
+    function endReveal(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; cv.onclick=null;
+      $('#s_reveal').classList.remove('on'); $('#revTitle').classList.remove('show'); $('#revWinner').classList.remove('show'); $('#revVote').classList.remove('show');
+      show('result'); buildResult(); }
+    function frame(now){ if(!cur||cur.phase!=='result'){ stopReveal(); return; } const T=(now-t0)/1000;
+      const dt=Math.min((now-lastFrame)/1000,0.05); lastFrame=now;   // dtをクランプ（タブ間引き時のワープ防止）
+      if(T>=START&&!finished){ const leadRt=raceT/finishRaceT; const warp = (validWin&&leadRt>0.9)?0.32 : (validWin&&leadRt>0.82)?0.6 : 1; raceT+=dt*warp; }   // ゴール直前はスローモーション（有効勝者時のみ）
+      if(capBoat>=0 && capTrigT<0 && raceT>0){ const rt=Math.min(raceT/finTime[capBoat],1); if(perim*rt>=capsizeDist){ capTrigT=raceT; try{ tone(120,0,.32,'sawtooth',.2); }catch(e){} try{ flashFx(''); }catch(e){} } }   // 5位が1マークで転覆
+      draw(T);
+      if(!launched&&T>=START){ launched=true; $('#revTitle').classList.remove('show'); try{ tone(280,0,.18,'sawtooth',.16); }catch(e){} flashFx(''); playBGM('race',{loop:true}); }   // 発走→走行音（ファンファーレはスタート勝負で鳴らす）
+      if(!finished&&raceT>=finishRaceT) onFinish();
+      if(finished&&T>finishAt+HOLD){ endReveal(); return; }
+      revRaf=requestAnimationFrame(frame); }
+    revRaf=requestAnimationFrame(frame);
+  }
+
+  // 大時計（表示専用・go信号で開始）
+  const cdnum=()=>$('#cdnum'), blind=()=>$('#blind'), hand=()=>$('#hand'), prog=()=>$('#progress'), clk=()=>$('#clockSvg');
+  let raf=0,t0=0,hidden=false,lastB=99, running=false, goAtV=0;
+  function startClock(){ running=true; hidden=false; lastB=99; cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }   // t0を真の発走時刻(goAt)にアンカー
+  function loop(now){ const el=(now-t0)/1000, remain=ZERO_AT-el, frac=Math.min(el/ZERO_AT,1);
+    if(!hidden){ prog().style.strokeDashoffset=RING_LEN*(1-frac); hand().style.transform=`rotate(${frac*360}deg)`; hand().style.transformOrigin='100px 100px';
+      if(remain>HIDE_REMAIN){ cdnum().textContent=Math.max(0,Math.ceil(remain)); const s=Math.ceil(remain); if(s!==lastB){lastB=s; tone(760,0,.06,'sine',.14);} }
+      else { hidden=true; cdnum().classList.add('hide'); blind().classList.add('on'); clk().classList.add('gone'); } }
+    if(el<ZERO_AT+2.8){ raf=requestAnimationFrame(loop); } else { running=false; } }
+
+  function armClock(){ try{ running=false; cancelAnimationFrame(raf); cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; }catch(e){} }
+  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); } else if(m.type==='go'){ show('count'); armClock(); playBGM('fanfare'); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); setTimeout(()=>{ startClock(); }, Math.max(0,delay)); } });   // 発走ファンファーレを流し切る→大時計(よーいドン)。間は時計をスタンバイ表示で待機
+  function onState(s){
+    BGM.setVenue(s.venue||'naruto');
+    if(s.phase!=='result') stopReveal();
+    if(s.phase!=='prize') prevPrize=false;
+    $('#rnoV').textContent='R'+s.round; $('#rnoR').textContent='R'+s.round;
+    if(s.phase==='lobby'){ show('lobby'); buildLobby(); }
+    else if(s.phase==='vote'){ show('vote'); buildVote(); }
+    else if(s.phase==='countdown'){ show('count'); if(!running && prevPhase!=='countdown') { /* 待機表示。go信号で開始 */ }
+      const jc=s.joined.filter(Boolean).length, rc=s.results.filter((r,i)=>s.joined[i]&&r!=null).length; $('#doneCount').textContent=rc+' / '+jc+' 完了'; }
+    else if(s.phase==='result'){ if(!revealing){ if(prevPhase!=='result'){ runReveal(s); } else { show('result'); buildResult(); } } }
+    else if(s.phase==='prize'){ stopReveal(); show('prize'); buildPrize(); }
+    if(s.phase!==prevPhase){
+      if(s.phase==='lobby'||s.phase==='vote'){ if(prevPhase!=='lobby'&&prevPhase!=='vote') playBGM('parade',{loop:true}); }
+      else if(s.phase==='countdown'){ /* 発走ファンファーレはgo信号で鳴らす（→間→大時計） */ }
+    }
+    prevPhase=s.phase;
+  }
+})();
+</script>
+</body>
+</html>

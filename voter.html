@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>予想投票 ／ 神センス0.15チャレンジ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .vlist{display:grid; gap:10px; margin-top:16px;}
+  .vrow{position:relative; display:grid; grid-template-columns:46px 1fr 74px; align-items:center; gap:10px; padding:12px; border-radius:14px; cursor:pointer; border:1px solid var(--line); background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.01));}
+  .vrow::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--bc); box-shadow:0 0 12px var(--bc);}
+  .vrow .kw{width:40px;height:40px;font-size:20px;}
+  .vrow .nm{font-weight:800; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:8px;}
+  .vrow .od{display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; font-family:var(--disp); font-size:22px; background:linear-gradient(180deg,#fff,#bfe6ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .vrow .od .vc{font-family:var(--lab);font-weight:600;font-size:11px;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-top:3px;}
+  .vrow .od .x{font-family:var(--lab);font-size:.5em;-webkit-text-fill-color:var(--muted);}
+  .vrow.sel{outline:2px solid var(--gold);}
+  .vrow.locked{pointer-events:none;}
+  .vrow.mine{outline:2px solid var(--gold); background:linear-gradient(90deg,rgba(255,210,74,.14),rgba(255,255,255,.02));}
+</style>
+</head>
+<body>
+<div class="brand"><span class="live">LIVE</span> ・ 予想投票 VOTE</div>
+<button class="mute" id="mute">🔊</button>
+<div class="wrap">
+  <section class="screen on" id="s_vote">
+    <div class="kicker">Who wins ?</div>
+    <div class="title" style="font-size:clamp(22px,5.2vw,34px)">優勝を予想しよう</div>
+    <p class="lead" id="vlead">大時計が0を差した瞬間から、いちばん速く（0秒に近く）スタートを決めるのは誰？<br>1人選んでタップ！</p>
+    <div class="vlist" id="vlist"></div>
+    <button class="btn" id="confirmVote" style="display:none; margin-top:14px">この予想で確定する ▶</button>
+    <p class="lead" id="pendHint" style="display:none; color:var(--muted); margin-top:8px">タップで選び直せます。「確定」で投票が完了します。</p>
+    <p class="lead" id="voteMsg" style="display:none; color:var(--gold); font-weight:700"></p>
+  </section>
+  <section class="screen" id="s_result">
+    <div class="kicker">Result</div>
+    <div class="title" id="rTitle" style="font-size:clamp(24px,6vw,40px)">—</div>
+    <p class="lead" id="rMsg">—</p>
+    <button class="btn ghost" id="backVote" style="display:none">投票にもどる</button>
+  </section>
+</div>
+<div class="conn" id="conn">● 接続中</div>
+<script src="shared.js"></script>
+<script>
+(()=>{ "use strict";
+  const $=s=>document.querySelector(s);
+  document.body.insertAdjacentHTML('afterbegin', sceneHTML());
+  const bus=makeBus('voter');
+  let cur=null, myVote=null, pendSel=null, phase='lobby', curKey=null, builtSig=null, resultFx=false;
+  const VKEY='kami_vote_v1';   // 1端末1票：ゲーム(gameId)×ラウンドごとに保存し、リロードしても再投票不可。リセット後(別gameId)は投票可
+  function gkey(){ const g=(cur&&cur.gameId)||'g'; const r=(cur&&typeof cur.round==='number')?cur.round:0; return g+'#'+r; }
+  function loadVoted(){ try{ const o=JSON.parse(localStorage.getItem(VKEY)||'null'); if(o&&o.k===gkey()&&typeof o.boat==='number')return o.boat; }catch(e){} return null; }
+  function saveVoted(boat){ try{ localStorage.setItem(VKEY, JSON.stringify({k:gkey(),boat:boat})); }catch(e){} }
+  $('#mute').addEventListener('click',()=>{ const m=$('#mute').textContent==='🔊'; setMuted(m); $('#mute').textContent=m?'🔇':'🔊'; if(!m){AC(); tone(880,0,.08,'sine',.12);} });
+
+  function names(){ return (cur&&cur.names)||new Array(N).fill(null); }
+  function votesArr(){ return (cur&&cur.votes)||new Array(N).fill(0); }
+  function structSig(){ return N+'::'+names().map(x=>x||'').join('|'); }
+  // 行の骨組みは名前が変わった時だけ作り直す（毎ポーリングでの全再描画＝トップに飛ぶ現象を防止）
+  function buildRows(){ const nm=names(); const g=$('#vlist'); let h='';
+    for(let i=0;i<N;i++){ const label=nm[i]||(i+1+'号艇');
+      h+=`<div class="vrow" data-i="${i}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><div class="nm">${esc(label)}</div><div class="od"></div></div>`; }
+    g.innerHTML=h;
+    g.querySelectorAll('.vrow').forEach(r=>r.addEventListener('click',()=>{ if(myVote!=null||phase!=='vote')return; pendSel=+r.dataset.i; AC(); tone(720,0,.05,'sine',.1); refreshRows(); updateConfirm(); }));
+    builtSig=structSig(); }
+  // 票数・オッズ・選択/確定/ロックの見た目だけ差分更新（DOMは作り直さない）
+  function refreshRows(){ const vt=votesArr(); $('#vlist').querySelectorAll('.vrow').forEach(r=>{ const i=+r.dataset.i;
+      r.classList.toggle('mine', myVote===i);
+      r.classList.toggle('sel', myVote==null&&pendSel===i);
+      r.classList.toggle('locked', myVote!=null);
+      const od=r.querySelector('.od'); if(od) od.innerHTML=oddsHTML(odds(vt,i))+'<span class="vc">'+(vt[i]||0)+'票</span>';
+    }); }
+  function ensureList(){ if(structSig()!==builtSig) buildRows(); refreshRows(); }
+  function updateConfirm(){ const b=$('#confirmVote'), hint=$('#pendHint');
+    if(phase==='vote' && myVote==null && pendSel!=null){ b.style.display=''; hint.style.display=''; b.innerHTML='「'+esc(names()[pendSel]||(pendSel+1+'号艇'))+'」で確定する ▶'; }
+    else { b.style.display='none'; hint.style.display='none'; } }
+  $('#confirmVote').addEventListener('click',()=>{ if(myVote!=null||pendSel==null||phase!=='vote')return; myVote=pendSel; saveVoted(myVote); bus.post({type:'vote',src:'voter',boat:myVote}); AC(); tone(980,0,.12,'sine',.16);
+    $('#voteMsg').style.display=''; $('#voteMsg').innerHTML='✅ '+(names()[myVote]||(myVote+1+'号艇'))+' に投票しました！（この端末は1票のみ）'; refreshRows(); updateConfirm(); });
+
+  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); } });
+  function onState(s){ phase=s.phase; const key=gkey();
+    if(key!==curKey){ curKey=key; pendSel=null; myVote=loadVoted(); }   // ゲーム/ラウンド変更で再判定（保存済みなら復元＝再投票不可、別ゲームなら投票可）
+    else if(myVote==null){ const v=loadVoted(); if(v!=null) myVote=v; }
+    if(s.phase==='result'||s.phase==='prize'){ showResult(s); updateConfirm(); return; }
+    resultFx=false;   // 結果以外に戻ったら演出フラグ解除
+    $('#s_result').classList.remove('on'); $('#s_vote').classList.add('on');
+    $('#voteMsg').style.display='none';
+    if(s.phase==='lobby'){ $('#vlead').innerHTML='まもなく投票開始。挑戦者が揃うのをお待ちください。'; }
+    else if(s.phase==='vote'){ $('#vlead').innerHTML='いちばん速く（0秒に近く）スタートを決めるのは誰？<br>1人選んでタップ！';
+      if(myVote!=null){ $('#voteMsg').style.display=''; $('#voteMsg').innerHTML='✅ '+(names()[myVote]||(myVote+1+'号艇'))+' に投票済み（この端末は1票のみ）'; } }
+    else if(s.phase==='countdown'){ $('#voteMsg').style.display='';
+      $('#voteMsg').innerHTML = (myVote==null) ? '投票締切。大画面でスタート勝負を見守ろう！' : 'あなたの予想：'+(names()[myVote]||(myVote+1+'号艇'))+'。大画面へ注目！'; }
+    ensureList(); updateConfirm();
+  }
+  function showResult(s){ $('#s_vote').classList.remove('on'); $('#s_result').classList.add('on');
+    const order=ranking(s.results), win=order[0], valid=(s.results[win]!=null&&s.results[win]>=0);
+    if(!valid){ $('#rTitle').textContent='優勝なし'; $('#rTitle').style.color='var(--muted)'; $('#rMsg').textContent='全員フライング…次のラウンドへ！'; return; }
+    const wn=(names()[win]||(win+1+'号艇'));
+    if(myVote===win){ $('#rTitle').innerHTML='🎯 的中！'; $('#rTitle').style.color='var(--gold)'; $('#rMsg').innerHTML='優勝は <b style="color:var(--gold)">'+esc(wn)+'</b>（'+s.results[win].toFixed(2)+'秒）。<br>🎁 商品プレゼントの対象です！スタッフにお声がけください。'; if(!resultFx){ confetti(); fanfare(); resultFx=true; } }
+    else { $('#rTitle').textContent='ざんねん…'; $('#rTitle').style.color='#cfe6f5'; $('#rMsg').innerHTML='優勝は <b>'+esc(wn)+'</b>（'+s.results[win].toFixed(2)+'秒）。<br>次のラウンドでリベンジを！'; }
+  }
+})();
+</script>
+</body>
+</html>
