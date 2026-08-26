@@ -116,7 +116,7 @@ const server=http.createServer((req,res)=>{
   if(p==='/vote')p='/voter.html';
   if(p==='/guide')p='/当日運営手順書.html';
   if(p==='/wall')p='/wall.html';
-  if(p==='/healthz'){res.writeHead(200,{'Content-Type':'text/plain'});res.end('ok '+clients.length);return;}
+  if(p==='/healthz'){res.writeHead(200,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('ok v2-load clients='+clients.length);return;}
   const allow=['/index.html','/admin.html','/projector.html','/player.html','/voter.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js'];
   if(allow.includes(p)){serveFile(res,p.slice(1),req);return;}
   if(/^\/bgm\/[a-z]+\/[a-z0-9_]+\.(mp3|ogg|m4a|wav)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // BGM音源
