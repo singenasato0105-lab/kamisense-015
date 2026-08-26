@@ -16,6 +16,7 @@
   .bar button.go:disabled{opacity:.5;cursor:default;}
   .bar button.res{background:#1c2a1c;border-color:#2f4f2f;color:#bfe6bf;}
   .bar .st{font-size:12px;color:var(--mut);min-width:180px;}
+  .bar .step{font-size:11px;font-weight:900;letter-spacing:.08em;color:var(--gold);background:#1a1408;border:1px solid #3a2f12;border-radius:8px;padding:6px 10px;}
   .bar .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3ad07a;margin-right:5px;vertical-align:middle;}
   .grid{display:grid;grid-template-columns:1.55fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;height:calc(100vh - 52px);}
   .panel{background:var(--pan);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0;}
@@ -40,7 +41,8 @@
       <option value="kojima">2部 児島</option>
       <option value="marugame">3部 丸亀</option>
     </select>
-    <button class="go" id="demo">▶ 1周デモ自動再生</button>
+    <span class="step" id="stepno">STEP 0</span>
+    <button class="go" id="next">▶ 次へ</button>
     <button class="res" id="reset">ロビーに戻す</button>
   </div>
   <div class="grid">
@@ -52,44 +54,38 @@
 
 <script>
 const N=6;
-const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // 1号艇=安里信弦 固定
-const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // 3号艇0.04=神スタート / 4号艇フライング
+const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // 空き枠を埋めるデモ名（1号艇=安里信弦）
+const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // 未PUSH枠を埋めるデモST（3号艇0.04=神スタート / 4号艇フライング）
 const VOTES=[3,1,9,2,6,1];
 const post=(m)=>fetch('/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)});
-const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-const stEl=document.getElementById('st'), demoBtn=document.getElementById('demo'), venueSel=document.getElementById('venue');
+const getState=async()=>{ try{ const r=await fetch('/state',{cache:'no-store'}).then(r=>r.json()); return (r&&r.state&&r.state.s)?r.state.s:null; }catch(e){ return null; } };
+const stEl=document.getElementById('st'), nextBtn=document.getElementById('next'), stepnoEl=document.getElementById('stepno'), venueSel=document.getElementById('venue');
 function status(t){ stEl.textContent=t; }
-function base(){ return {phase:'lobby',round:0,venue:venueSel.value,names:Array(N).fill(null),joined:Array(N).fill(false),votes:Array(N).fill(0),results:Array(N).fill(null),goSeq:0}; }
+function base(){ return {phase:'lobby',round:1,venue:venueSel.value,names:Array(N).fill(null),joined:Array(N).fill(false),votes:Array(N).fill(0),results:Array(N).fill(null),goSeq:0}; }
+let s=base(), step=0;
+async function push(msg){ s.venue=venueSel.value; await post({type:'state',src:'admin',s}); if(msg)status(msg); }
 
-async function reset(){ await post({type:'state',src:'admin',s:base()}); status('ロビーにリセット'); }
-document.getElementById('reset').onclick=reset;
-
-demoBtn.onclick=async function(){
-  demoBtn.disabled=true;
-  try{
-    let s=base(); await post({type:'state',src:'admin',s}); status('① ロビー'); await sleep(1200);
-    // ① エントリー（1人ずつ点灯）
-    for(let i=0;i<N;i++){ s.joined[i]=true; s.names[i]=NAMES[i]; await post({type:'state',src:'admin',s}); status('① エントリー '+(i+1)+'/6'); await sleep(500); }
-    await sleep(700);
-    // ② 投票フェーズ（票が動く＝オッズ変動）
-    s.phase='vote'; await post({type:'state',src:'admin',s}); status('② 投票受付'); await sleep(900);
-    const rem=VOTES.slice(); let total=0, target=VOTES.reduce((a,b)=>a+b,0);
-    while(total<target){ let cands=[]; rem.forEach((v,i)=>{ if(v>0)cands.push(i); }); const i=cands[Math.floor(Math.random()*cands.length)]; rem[i]--; s.votes[i]++; total++; await post({type:'state',src:'admin',s}); status('② 投票 '+total+'/'+target+'票'); await sleep(260); }
-    await sleep(900);
-    // ③ 締切→同時スタート
-    s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=1; s.goAt=Date.now()+11000; await post({type:'state',src:'admin',s}); status('③ 発走ファンファーレ演出 → 大時計 → PUSH');
-    await sleep(23500);   // 発走演出(約11秒)＋大時計(約12.5秒)を見せ切る
-    // ④ 結果（0秒に近い順）
-    s.results=STS.slice(); s.phase='result'; await post({type:'state',src:'admin',s}); status('④ 結果発表'); await sleep(3500);
-    // ⑤ プレゼント
-    s.phase='prize'; await post({type:'state',src:'admin',s}); status('⑤ 商品プレゼント 🎁'); await sleep(1200);
-    status('✅ 1周デモ完了（全パネル同時更新を確認）');
-  }catch(e){ status('デモ失敗: '+e); }
-  demoBtn.disabled=false;
-};
-
-// 会場変更は投影のBGM切替に反映（デモ外でも触れる）
-venueSel.onchange=async function(){ const r=await fetch('/state').then(r=>r.json()).catch(()=>null); const s=(r&&r.state&&r.state.s)?r.state.s:base(); s.venue=venueSel.value; await post({type:'state',src:'admin',s}); status('会場→'+venueSel.options[venueSel.selectedIndex].text); };
+// 1タップ＝1ステップの進行管理。発走→結果は運営が大時計を見届けてから次を押す＝自分のペースで進められる。
+const STEPS=[
+  {b:'① エントリー', run:async()=>{ const c=await getState(); if(c)s=c; s.phase='lobby'; s.round=s.round||1;
+      for(let i=0;i<N;i++){ if(!s.joined[i]){ s.joined[i]=true; s.names[i]=NAMES[i]; } }   // 実参加の挑戦者は残し、空き枠だけデモ名で補完
+      await push('① エントリー（'+s.joined.filter(Boolean).length+'艇）'); }},
+  {b:'② 投票フェーズへ', run:async()=>{ s.phase='vote'; await push('② 投票受付中'); }},
+  {b:'③ 予想投票を集める', run:async()=>{ for(let i=0;i<N;i++) s.votes[i]+=VOTES[i]; await push('③ 投票 '+s.votes.reduce((a,b)=>a+b,0)+'票'); }},
+  {b:'④ 発走！（ファンファーレ→大時計）', run:async()=>{ s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+20500;
+      await push('④ 発走！ ファンファーレ鳴り切り→大時計→PUSH（見届けたら⑤へ）'); }},
+  {b:'⑤ 結果発表', run:async()=>{ const c=await getState(); const rs=(c&&c.results)?c.results.slice():Array(N).fill(null);
+      for(let i=0;i<N;i++){ if(rs[i]==null) rs[i]=STS[i]; }   // 挑戦者が実際にPUSHした結果を優先、未PUSHの枠だけデモ値で補完
+      s.results=rs; s.phase='result'; await push('⑤ 結果発表'); }},
+  {b:'⑥ 商品プレゼント 🎁', run:async()=>{ s.phase='prize'; await push('⑥ 商品プレゼント'); }},
+  {b:'▶ 次のラウンドへ', run:async()=>{ s.votes=Array(N).fill(0); s.results=Array(N).fill(null); s.round=(s.round||1)+1; s.phase='vote'; await push('R'+s.round+' 投票受付中'); return 2; }},
+];
+function refresh(){ nextBtn.textContent='▶ '+STEPS[step].b; stepnoEl.textContent='STEP '+(step+1)+'/'+STEPS.length; }
+nextBtn.onclick=async()=>{ nextBtn.disabled=true; try{ const nx=await STEPS[step].run(); step=(typeof nx==='number')?nx:(step+1); if(step>=STEPS.length)step=STEPS.length-1; refresh(); }catch(e){ status('失敗: '+e); } nextBtn.disabled=false; };
+document.getElementById('reset').onclick=async()=>{ s=base(); step=0; await push('ロビーにリセット'); refresh(); };
+// 会場変更は投影のBGM切替に反映
+venueSel.onchange=async()=>{ const c=await getState(); if(c)s=c; s.venue=venueSel.value; await post({type:'state',src:'admin',s}); status('会場→'+venueSel.options[venueSel.selectedIndex].text); };
+refresh();
 </script>
 </body>
 </html>

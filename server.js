@@ -49,7 +49,7 @@ function applyParticipant(m){ const s=lastState.s; const b=m.boat;
 function applyCmd(m){ const s=lastState.s, a=m.action;
   if(a==='venue'){ s.venue=m.value; }
   else if(a==='phase'){ s.phase=m.value; }
-  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||19300); }   // 発走ファンファーレ(約18.8秒)を最後まで流し切ってから大時計(よーいドン)。ファンファーレ差替時はこの値を尺に合わせる
+  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||20500); }   // 発走ファンファーレ(実測18.83秒)を最後まで流し切ってから大時計(よーいドン)。投影の再生開始遅延(0.3〜0.6秒)＋余韻を見込んで20.5秒。ファンファーレ差替時はこの値を尺+約1.6秒に合わせる
   else if(a==='next'){ s.round=(s.round||1)+1; s.votes=new Array(N).fill(0); s.results=new Array(N).fill(null); s.phase='vote'; }
   else if(a==='reset'){ lastState.s=defaultState(s.venue).s; }
   return true; }
