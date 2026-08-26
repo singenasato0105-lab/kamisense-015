@@ -25,7 +25,17 @@ const N=6;
 // 進行状態のクラッシュ復旧：ディスクに保存し、起動時に復元
 const SAVE=path.join(ROOT,'kami-state.json');
 try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ lastState=JSON.parse(raw); stateVer=1; console.log('前回の進行状態を復元しました'); } }catch(e){}
-function persist(){ try{ fs.writeFile(SAVE, lastState?JSON.stringify(lastState):'', ()=>{}); }catch(e){} }
+// 永続化はデバウンス：投票1票ごとにディスクへ書くと高負荷時に詰まるため最大1秒に1回へ束ねる。
+// 運営操作（フェーズ/リセット等）は即時保存、プロセス終了時も必ず書き切る（下部のSIGTERM/SIGINT）。
+let persistT=null, persistDirty=false;
+function flushPersist(){ if(!persistDirty)return; persistDirty=false; try{ fs.writeFileSync(SAVE, lastState?JSON.stringify(lastState):''); }catch(e){} }
+function persist(immediate){ persistDirty=true;
+  if(immediate){ if(persistT){clearTimeout(persistT);persistT=null;} flushPersist(); return; }
+  if(persistT)return; persistT=setTimeout(()=>{ persistT=null; flushPersist(); }, 1000); }
+// /state 応答の直列化キャッシュ：状態は版(stateVer)が変わった時だけ1回 stringify し、
+// 毎リクエストは now/seq の短い前置きだけ連結して返す（毎回の全状態stringifyを排除＝ポーリング嵐でもCPUを食わない）。
+let _stateBody=null, _stateBodyVer=-1;
+function stateBody(){ if(_stateBodyVer!==stateVer){ _stateBody=JSON.stringify(lastState); _stateBodyVer=stateVer; } return _stateBody; }
 function defaultState(v){ return {type:'state',src:'admin',s:{phase:'lobby',round:1,gameId:Date.now(),venue:v||'naruto',names:new Array(N).fill(null),joined:new Array(N).fill(false),votes:new Array(N).fill(0),results:new Array(N).fill(null),goSeq:0}}; }
 if(!lastState||!lastState.s){ lastState=defaultState(); stateVer=Math.max(stateVer,1); }
 // 参加者メッセージをサーバー側で集計（運営が閉じていても取りこぼさない）
@@ -49,7 +59,11 @@ function serveFile(res,file,req){
     const ext=path.extname(file); let out=buf;
     if(ext==='.html'){ const url=baseUrl(req);
       out=buf.toString().replace('<script src="shared.js"></script>','<script>window.APP_SSE=true;window.APP_URL='+JSON.stringify(url)+';</script>\n<script src="shared.js"></script>'); }
-    res.writeHead(200,{'Content-Type':MIME[ext]||'text/plain','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
+    // HTMLはAPP_URL注入があるため毎回最新(no-store)。JS/CSSは5分、音源は1日キャッシュ＝QR一斉スキャン時の再ダウンロード負荷とバーストを抑える。
+    const cache = ext==='.html' ? 'no-store'
+      : (ext==='.mp3'||ext==='.ogg'||ext==='.m4a'||ext==='.wav') ? 'public, max-age=86400'
+      : 'public, max-age=300';
+    res.writeHead(200,{'Content-Type':MIME[ext]||'text/plain','Cache-Control':cache,'Access-Control-Allow-Origin':'*'});
     res.end(out);
   });
 }
@@ -70,11 +84,11 @@ const server=http.createServer((req,res)=>{
   if(req.method==='POST'&&u.pathname==='/send'){
     let b=''; req.on('data',d=>{b+=d;if(b.length>1e6)req.destroy();});
     req.on('end',()=>{ let m; try{m=JSON.parse(b);}catch(e){res.writeHead(400);res.end();return;}
-      if(m.type==='state'&&m.src==='admin'){ lastState=m; if(!lastState.s)lastState.s=defaultState().s; stateVer++; persist(); broadcast(lastState); }
-      else if(m.type==='cmd'&&m.src==='admin'){ applyCmd(m); stateVer++; persist(); broadcast(lastState); }
+      if(m.type==='state'&&m.src==='admin'){ lastState=m; if(!lastState.s)lastState.s=defaultState().s; stateVer++; persist(true); broadcast(lastState); }
+      else if(m.type==='cmd'&&m.src==='admin'){ applyCmd(m); stateVer++; persist(true); broadcast(lastState); }
       else { seqN++; m._seq=seqN; inbox.push(m); if(inbox.length>400)inbox=inbox.slice(-250);
         const changed=applyParticipant(m);   // サーバーで集計
-        if(changed){ stateVer++; persist(); broadcast(lastState); } else { broadcast(m); } }
+        if(changed){ stateVer++; persist(); broadcast(lastState); } else { broadcast(m); } }   // 投票はデバウンス保存（1秒に1回）
       res.writeHead(204,{'Access-Control-Allow-Origin':'*'}); res.end(); });
     return;
   }
@@ -86,7 +100,7 @@ const server=http.createServer((req,res)=>{
   // 短ポーリング（プロキシ/トンネルでも確実に届く）
   if(req.method==='GET'&&u.pathname==='/state'){
     res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':'*'});
-    res.end(JSON.stringify({v:stateVer, seq:seqN, now:Date.now(), state:lastState})); return;
+    res.end('{"v":'+stateVer+',"seq":'+seqN+',"now":'+Date.now()+',"state":'+stateBody()+'}'); return;   // 状態は版キャッシュ・前置きだけ都度連結
   }
   if(req.method==='GET'&&u.pathname==='/inbox'){
     const since=+(u.searchParams.get('since')||0);
@@ -119,3 +133,5 @@ server.listen(PORT,()=>{
   console.log('  会場LAN  : http://'+ip+':'+PORT+'/');
 });
 setInterval(()=>{const p='data: '+JSON.stringify({type:'ping',src:'admin'})+'\n\n';clients.forEach(c=>{try{c.res.write(p);}catch(e){}});},3000);
+// 終了シグナルでデバウンス保留中の投票を書き切ってから落ちる（進行状態を取りこぼさない）
+['SIGTERM','SIGINT'].forEach(sig=>process.on(sig,()=>{ try{ flushPersist(); }catch(e){} process.exit(0); }));

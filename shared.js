@@ -18,7 +18,8 @@ function makeBus(role){
   }
   let handler=null, started=false, lastV=-1, lastSeq=0, lastGo=0, offset=0, fails=0, seenState=false;
   let bestRtt=1e9, synced=0;   // NTP風クロック同期：RTT補正＋最小RTTのサンプルだけ採用してジッタを除去（発走ゼロの共有精度を上げる）
-  const POLL = role==='screen'?280 : role==='admin'?300 : role==='player'?450 : 650;   // 投影/運営は速く、観客は控えめ（サーバ負荷配慮）
+  // 投影/運営は速く、挑戦者(6台)は中庸、観客(数百台=群衆)は控えめ。発走同期はサーバ時刻(goAt)で合わせるためポーリング頻度に依存せず、観客を緩めても体感は変わらない＝サーバ負荷を大きく下げる。
+  const POLL = role==='screen'?280 : role==='admin'?300 : role==='player'?700 : 1400;
   function applyTime(sNow,tSend,tRecv){ if(typeof sNow!=='number')return; const rtt=tRecv-tSend; const off=(sNow+rtt/2)-tRecv;   // サーバ時刻を受信時点へ換算（片道≒RTT/2）
     bestRtt=bestRtt*1.06+4;                          // 採用基準を毎回わずかに緩め、回線変化に追従しつつ再ロック可能に
     if(rtt<=bestRtt){ offset=off; bestRtt=rtt; synced++; } }   // 低RTT時＝ネット歪みが小さい瞬間の値だけ採用
@@ -39,7 +40,9 @@ function makeBus(role){
   }
   return {mode:'poll',
     post(m){ try{ fetch(base+'/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)}).catch(()=>{}); }catch(e){} },
-    onMessage(fn){ handler=fn; if(!started){ started=true; for(let i=0;i<8;i++) setTimeout(syncTime,i*150); tick(); } },   // 起動直後に時刻を素早く収束（発走前に精度を確保）
+    onMessage(fn){ handler=fn; if(!started){ started=true;
+      const SB=(role==='screen'||role==='player')?8:2;   // 時計を使う投影/挑戦者だけ8連射で素早く収束。観客(群衆)は2回で十分＝QR一斉スキャン時の/timeバーストを大幅に削減
+      for(let i=0;i<SB;i++) setTimeout(syncTime,i*150); tick(); } },
     setSeq(n){ lastSeq=n; },
     serverNow(){ return Date.now()+offset; }, syncQuality(){ return {offset:Math.round(offset), bestRtt:Math.round(bestRtt), synced}; } };
 }
