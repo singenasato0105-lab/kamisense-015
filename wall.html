@@ -8,17 +8,22 @@
   :root{--bg:#070c11;--pan:#0e1620;--line:#1e2a36;--ink:#dbe8f2;--mut:#8fa6ba;--red:#ff5a4d;--gold:#f6c343;--blue:#2f7bff;}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic",sans-serif;}
-  .bar{height:52px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#0a121a;}
+  body{display:flex;flex-direction:column;}
+  .bar{flex:none;min-height:52px;display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 14px;border-bottom:1px solid var(--line);background:#0a121a;}
   .bar b{font-size:15px;font-weight:900;letter-spacing:.02em;}
   .bar .sp{flex:1;}
   .bar select,.bar button{font:inherit;font-size:13px;font-weight:800;color:var(--ink);background:#13202c;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;}
-  .bar button.go{background:linear-gradient(180deg,#2f7bff,#1a5fe0);border-color:#2f7bff;color:#fff;}
+  .bar button.go{background:linear-gradient(180deg,#2f7bff,#1a5fe0);border-color:#2f7bff;color:#fff;font-size:14px;padding:9px 16px;}
   .bar button.go:disabled{opacity:.5;cursor:default;}
   .bar button.res{background:#1c2a1c;border-color:#2f4f2f;color:#bfe6bf;}
-  .bar .st{font-size:12px;color:var(--mut);min-width:180px;}
+  .bar .st{font-size:13px;font-weight:800;color:var(--ink);}
+  .bar .hint{font-size:12px;color:var(--gold);background:#160f04;border:1px solid #3a2f12;border-radius:8px;padding:6px 10px;}
   .bar .step{font-size:11px;font-weight:900;letter-spacing:.08em;color:var(--gold);background:#1a1408;border:1px solid #3a2f12;border-radius:8px;padding:6px 10px;}
   .bar .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3ad07a;margin-right:5px;vertical-align:middle;}
-  .grid{display:grid;grid-template-columns:1.55fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;height:calc(100vh - 52px);}
+  .bar .reh{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px dashed #33465a;border-radius:10px;}
+  .bar .reh .dlabel{font-size:10px;font-weight:900;letter-spacing:.1em;color:var(--mut);}
+  .bar button.sm{font-size:12px;font-weight:700;padding:6px 9px;background:#101a24;color:#a9c2d6;}
+  .grid{flex:1;min-height:0;display:grid;grid-template-columns:1.55fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;}
   .panel{background:var(--pan);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0;}
   .panel h3{margin:0;padding:6px 11px;font-size:12px;font-weight:900;color:var(--ink);background:#12202c;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;}
   .panel h3 .tag{font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;background:#1d2f40;color:#9fc0e0;}
@@ -32,16 +37,22 @@
 </head>
 <body>
   <div class="bar">
-    <b>🖥 確認用マルチ画面</b>
-    <span class="tag" style="font-size:11px;color:var(--mut)">投影・運営・挑戦者・投票者を同時表示</span>
+    <b>🖥 進行コントロール</b>
+    <span class="st"><span class="dot"></span><span id="st">ロビー（参加受付）</span></span>
+    <span class="hint" id="hint">挑戦者がQRで参加 → 揃ったら「次へ」</span>
     <span class="sp"></span>
-    <span class="st"><span class="dot"></span><span id="st">待機中</span></span>
+    <div class="reh">
+      <span class="dlabel">リハ用</span>
+      <button class="sm" id="dEntry" title="空き枠をデモ名で6艇に">デモ6艇</button>
+      <button class="sm" id="dVote" title="デモの予想投票を加える">デモ投票+</button>
+      <button class="sm" id="dResult" title="未PUSH枠をデモ結果で埋める">デモ結果</button>
+    </div>
     <select id="venue" title="会場BGM">
       <option value="naruto">1部 鳴門</option>
       <option value="kojima">2部 児島</option>
       <option value="marugame">3部 丸亀</option>
     </select>
-    <span class="step" id="stepno">STEP 0</span>
+    <span class="step" id="stepno">STEP 1/5</span>
     <button class="go" id="next">▶ 次へ</button>
     <button class="res" id="reset">ロビーに戻す</button>
   </div>
@@ -54,37 +65,53 @@
 
 <script>
 const N=6;
-const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // 空き枠を埋めるデモ名（1号艇=安里信弦）
-const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // 未PUSH枠を埋めるデモST（3号艇0.04=神スタート / 4号艇フライング）
-const VOTES=[3,1,9,2,6,1];
+const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // リハ補充用のデモ名（1号艇=安里信弦）
+const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // リハ補充用のデモST（3号艇0.04=神スタート / 4号艇フライング）
+const VOTES=[3,1,9,2,6,1];                          // リハ補充用のデモ票
 const post=(m)=>fetch('/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)});
 const getState=async()=>{ try{ const r=await fetch('/state',{cache:'no-store'}).then(r=>r.json()); return (r&&r.state&&r.state.s)?r.state.s:null; }catch(e){ return null; } };
-const stEl=document.getElementById('st'), nextBtn=document.getElementById('next'), stepnoEl=document.getElementById('stepno'), venueSel=document.getElementById('venue');
-function status(t){ stEl.textContent=t; }
-function base(){ return {phase:'lobby',round:1,venue:venueSel.value,names:Array(N).fill(null),joined:Array(N).fill(false),votes:Array(N).fill(0),results:Array(N).fill(null),goSeq:0}; }
-let s=base(), step=0;
-async function push(msg){ s.venue=venueSel.value; await post({type:'state',src:'admin',s}); if(msg)status(msg); }
+const put=(s)=>post({type:'state',src:'admin',s});   // 状態を丸ごと反映（必ず最新stateを読んでからmergeして呼ぶ＝実参加者を壊さない）
+const stEl=document.getElementById('st'), nextBtn=document.getElementById('next'), stepnoEl=document.getElementById('stepno'),
+      hintEl=document.getElementById('hint'), venueSel=document.getElementById('venue');
 
-// 1タップ＝1ステップの進行管理。発走→結果は運営が大時計を見届けてから次を押す＝自分のペースで進められる。
-const STEPS=[
-  {b:'① エントリー', run:async()=>{ const c=await getState(); if(c)s=c; s.phase='lobby'; s.round=s.round||1;
-      for(let i=0;i<N;i++){ if(!s.joined[i]){ s.joined[i]=true; s.names[i]=NAMES[i]; } }   // 実参加の挑戦者は残し、空き枠だけデモ名で補完
-      await push('① エントリー（'+s.joined.filter(Boolean).length+'艇）'); }},
-  {b:'② 投票フェーズへ', run:async()=>{ s.phase='vote'; await push('② 投票受付中'); }},
-  {b:'③ 予想投票を集める', run:async()=>{ for(let i=0;i<N;i++) s.votes[i]+=VOTES[i]; await push('③ 投票 '+s.votes.reduce((a,b)=>a+b,0)+'票'); }},
-  {b:'④ 発走！（ファンファーレ→大時計）', run:async()=>{ s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+20500;
-      await push('④ 発走！ ファンファーレ鳴り切り→大時計→PUSH（見届けたら⑤へ）'); }},
-  {b:'⑤ 結果発表', run:async()=>{ const c=await getState(); const rs=(c&&c.results)?c.results.slice():Array(N).fill(null);
-      for(let i=0;i<N;i++){ if(rs[i]==null) rs[i]=STS[i]; }   // 挑戦者が実際にPUSHした結果を優先、未PUSHの枠だけデモ値で補完
-      s.results=rs; s.phase='result'; await push('⑤ 結果発表'); }},
-  {b:'⑥ 商品プレゼント 🎁', run:async()=>{ s.phase='prize'; await push('⑥ 商品プレゼント'); }},
-  {b:'▶ 次のラウンドへ', run:async()=>{ s.votes=Array(N).fill(0); s.results=Array(N).fill(null); s.round=(s.round||1)+1; s.phase='vote'; await push('R'+s.round+' 投票受付中'); return 2; }},
-];
-function refresh(){ nextBtn.textContent='▶ '+STEPS[step].b; stepnoEl.textContent='STEP '+(step+1)+'/'+STEPS.length; }
-nextBtn.onclick=async()=>{ nextBtn.disabled=true; try{ const nx=await STEPS[step].run(); step=(typeof nx==='number')?nx:(step+1); if(step>=STEPS.length)step=STEPS.length-1; refresh(); }catch(e){ status('失敗: '+e); } nextBtn.disabled=false; };
-document.getElementById('reset').onclick=async()=>{ s=base(); step=0; await push('ロビーにリセット'); refresh(); };
-// 会場変更は投影のBGM切替に反映
-venueSel.onchange=async()=>{ const c=await getState(); if(c)s=c; s.venue=venueSel.value; await post({type:'state',src:'admin',s}); status('会場→'+venueSel.options[venueSel.selectedIndex].text); };
+// フェーズ駆動の進行。ボタンは「今のフェーズの次」を出すだけ＝実際の状態に常に追従。挑戦者/観客の実データは一切上書きしない。
+const FLOW={
+  lobby:    {to:'vote',      btn:'投票受付へ',                 st:'ロビー（参加受付）',   hint:'挑戦者がQRで参加 → 揃ったら「投票受付へ」'},
+  vote:     {to:'countdown', btn:'発走！（ファンファーレ→大時計）', st:'投票受付中',         hint:'観客が優勝を予想 → 締めたら「発走」'},
+  countdown:{to:'result',    btn:'結果発表',                   st:'発走／大時計',        hint:'ファンファーレ鳴り切り→大時計→全員PUSHを見届けたら「結果発表」'},
+  result:   {to:'prize',     btn:'商品プレゼントへ 🎁',         st:'結果発表（着順演出）',  hint:'走行演出のあと「商品プレゼントへ」'},
+  prize:    {to:'nextround', btn:'次のラウンドへ',             st:'商品プレゼント',       hint:'的中者に賞品 → 「次のラウンドへ」'},
+};
+const ORDER=['lobby','vote','countdown','result','prize'];
+function reflect(s){ const ph=(s&&s.phase)||'lobby', f=FLOW[ph]||FLOW.lobby, rd=(s&&s.round)||1;
+  nextBtn.textContent='▶ '+f.btn; hintEl.textContent=f.hint;
+  stEl.textContent=f.st+' ・ R'+rd; stepnoEl.textContent='STEP '+(ORDER.indexOf(ph)+1)+'/5'; }
+
+// ＝＝ 本流：次のフェーズへ進めるだけ（非破壊）＝＝
+nextBtn.onclick=async()=>{ nextBtn.disabled=true; try{
+  const c=await getState(); if(c){ const to=(FLOW[c.phase]||FLOW.lobby).to;
+    if(to==='vote'){ c.phase='vote'; }
+    else if(to==='countdown'){ c.phase='countdown'; c.results=Array(N).fill(null); c.goSeq=(c.goSeq||0)+1; c.goAt=Date.now()+20500; }   // 発走まで20.5秒＝ファンファーレ(18.83秒)を鳴り切ってから大時計
+    else if(to==='result'){ c.phase='result'; }
+    else if(to==='prize'){ c.phase='prize'; }
+    else if(to==='nextround'){ c.votes=Array(N).fill(0); c.results=Array(N).fill(null); c.round=(c.round||1)+1; c.phase='vote'; }
+    c.venue=venueSel.value; await put(c); reflect(c); }
+}catch(e){ stEl.textContent='失敗: '+e; } nextBtn.disabled=false; };
+
+// ＝＝ リハ用：一人で通し確認する時だけ、空き枠をデモで補充（実参加者は残す）＝＝
+document.getElementById('dEntry').onclick=async()=>{ const c=await getState()||{}; c.joined=c.joined||Array(N).fill(false); c.names=c.names||Array(N).fill(null);
+  for(let i=0;i<N;i++){ if(!c.joined[i]){ c.joined[i]=true; c.names[i]=NAMES[i]; } } if(c.phase==null)c.phase='lobby'; c.venue=venueSel.value; await put(c); };
+document.getElementById('dVote').onclick=async()=>{ const c=await getState(); if(!c)return; for(let i=0;i<N;i++) c.votes[i]=(c.votes[i]||0)+VOTES[i]; await put(c); };
+document.getElementById('dResult').onclick=async()=>{ const c=await getState(); if(!c)return; c.results=c.results||Array(N).fill(null);
+  for(let i=0;i<N;i++){ if(c.results[i]==null) c.results[i]=STS[i]; } await put(c); };
+
+document.getElementById('reset').onclick=async()=>{ await post({type:'cmd',src:'admin',action:'reset'}); setTimeout(sync,300); };
+venueSel.onchange=async()=>{ await post({type:'cmd',src:'admin',action:'venue',value:venueSel.value}); };
+
+// 常に実フェーズをボタン/ヒントに反映（実挑戦者や他端末の操作にも追従）
+let syncing=false;
+async function sync(){ if(syncing)return; syncing=true; try{ const c=await getState(); if(c) reflect(c); }catch(e){} syncing=false; }
+setInterval(sync,1200); sync();
 refresh();
 </script>
 </body>
