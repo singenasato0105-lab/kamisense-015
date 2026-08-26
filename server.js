@@ -120,6 +120,7 @@ const server=http.createServer((req,res)=>{
   const allow=['/index.html','/admin.html','/projector.html','/player.html','/voter.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js'];
   if(allow.includes(p)){serveFile(res,p.slice(1),req);return;}
   if(/^\/bgm\/[a-z]+\/[a-z0-9_]+\.(mp3|ogg|m4a|wav)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // BGM音源
+  if(/^\/img\/[a-z0-9_-]+\.(svg|png|jpg|jpeg|webp)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // 会場キャラ等の画像
   res.writeHead(404); res.end('not found');
 });
 server.listen(PORT,()=>{
