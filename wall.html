@@ -77,8 +77,8 @@ demoBtn.onclick=async function(){
     while(total<target){ let cands=[]; rem.forEach((v,i)=>{ if(v>0)cands.push(i); }); const i=cands[Math.floor(Math.random()*cands.length)]; rem[i]--; s.votes[i]++; total++; await post({type:'state',src:'admin',s}); status('② 投票 '+total+'/'+target+'票'); await sleep(260); }
     await sleep(900);
     // ③ 締切→同時スタート
-    s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=1; s.goAt=Date.now()+2600; await post({type:'state',src:'admin',s}); status('③ スタート勝負！（大時計→PUSH）');
-    await sleep(13500);
+    s.phase='countdown'; s.results=Array(N).fill(null); s.goSeq=1; s.goAt=Date.now()+11000; await post({type:'state',src:'admin',s}); status('③ 発走ファンファーレ演出 → 大時計 → PUSH');
+    await sleep(23500);   // 発走演出(約11秒)＋大時計(約12.5秒)を見せ切る
     // ④ 結果（0秒に近い順）
     s.results=STS.slice(); s.phase='result'; await post({type:'state',src:'admin',s}); status('④ 結果発表'); await sleep(3500);
     // ⑤ プレゼント
