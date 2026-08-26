@@ -387,7 +387,8 @@
   // 大時計（表示専用・go信号で開始）
   const cdnum=()=>$('#cdnum'), blind=()=>$('#blind'), hand=()=>$('#hand'), prog=()=>$('#progress'), clk=()=>$('#clockSvg');
   let raf=0,t0=0,hidden=false,lastB=99, running=false, goAtV=0;
-  function startClock(){ endHype(); running=true; hidden=false; lastB=99; cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }   // t0を真の発走時刻(goAt)にアンカー
+  function startClock(){ endHype(); playBGM('race',{loop:true});   // 大時計スタート＝BGMを止めてボートの走行音に（10秒カウント中）
+    running=true; hidden=false; lastB=99; cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }   // t0を真の発走時刻(goAt)にアンカー
   function loop(now){ const el=(now-t0)/1000, remain=ZERO_AT-el, frac=Math.min(el/ZERO_AT,1);
     if(!hidden){ prog().style.strokeDashoffset=RING_LEN*(1-frac); hand().style.transform=`rotate(${frac*360}deg)`; hand().style.transformOrigin='100px 100px';
       if(remain>HIDE_REMAIN){ cdnum().textContent=Math.max(0,Math.ceil(remain)); const s=Math.ceil(remain); if(s!==lastB){lastB=s; tone(760,0,.06,'sine',.14);} }
