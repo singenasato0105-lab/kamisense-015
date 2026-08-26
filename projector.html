@@ -61,6 +61,48 @@
   .rev-vote .hit{font-family:var(--jp); font-weight:900; font-size:34px; color:#fff;}
   .rev-vote .hit b{color:var(--cyan); font-size:46px;}
   .rev-vote .sub2{font-family:var(--lab); letter-spacing:.22em; color:#9fc0d8; font-size:16px; margin-top:8px;}
+  /* ===== 発走ファンファーレ演出（待機画面を"煽り"に格上げ）===== */
+  #fanhype{position:absolute; inset:0; z-index:5; display:none; overflow:hidden; background:radial-gradient(120% 92% at 50% 32%,#07314b,#041c2b 58%,#010a12);}
+  #fanhype.on{display:block;}
+  #fanhype .fh-rays{position:absolute; left:50%; top:40%; width:200cqw; height:200cqw; transform:translate(-50%,-50%);
+    background:repeating-conic-gradient(from 0deg, rgba(255,210,74,.10) 0deg 5deg, transparent 5deg 17deg); animation:fhSpin 14s linear infinite; opacity:.55;}
+  @keyframes fhSpin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+  #fanhype .fh-light{position:absolute; top:-25%; width:30cqw; height:150%; filter:blur(7px); mix-blend-mode:screen; opacity:.55;}
+  #fanhype .fh-light.l1{left:10%; background:linear-gradient(90deg,transparent,rgba(47,228,255,.55),transparent); animation:fhSweep1 3.4s ease-in-out infinite;}
+  #fanhype .fh-light.l2{right:10%; background:linear-gradient(90deg,transparent,rgba(255,150,40,.55),transparent); animation:fhSweep2 3.9s ease-in-out infinite;}
+  @keyframes fhSweep1{0%,100%{transform:translateX(-42cqw) rotate(-9deg);}50%{transform:translateX(42cqw) rotate(9deg);}}
+  @keyframes fhSweep2{0%,100%{transform:translateX(42cqw) rotate(9deg);}50%{transform:translateX(-42cqw) rotate(-9deg);}}
+  #fanhype .fh-top{position:absolute; top:4.4cqh; left:0; right:0; text-align:center; font-family:var(--lab); letter-spacing:.28em; font-size:clamp(14px,2.2cqw,20px); color:#9fd6f0;}
+  #fanhype .fh-top b{color:var(--gold);}
+  #fanhype .fh-mid{position:absolute; top:19cqh; left:0; right:0; text-align:center;}
+  #fanhype .fh-kicker{font-family:var(--lab); font-weight:700; letter-spacing:.36em; font-size:clamp(15px,2.6cqw,24px);
+    color:transparent; background:linear-gradient(90deg,var(--cyan),#fff,var(--gold)); background-size:200% auto; -webkit-background-clip:text; background-clip:text; animation:fhShimmer 2.2s linear infinite;}
+  @keyframes fhShimmer{to{background-position:200% center;}}
+  #fanhype .fh-title{font-family:var(--jp); font-weight:900; font-style:italic; font-size:clamp(60px,15cqw,132px); line-height:1; margin-top:1cqh;
+    color:transparent; background:linear-gradient(180deg,#fff,#ffe9a8 40%,var(--gold) 70%,var(--orange)); -webkit-background-clip:text; background-clip:text;
+    filter:drop-shadow(0 6px 26px rgba(255,180,40,.5)); animation:fhPulse 1s ease-in-out infinite;}
+  @keyframes fhPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.055);}}
+  #fanhype .fh-sub{margin-top:1.4cqh; font-family:var(--jp); font-weight:800; font-size:clamp(18px,3.4cqw,30px); color:#eaf6ff;}
+  #fanhype .fh-sub b{color:var(--gold);}
+  #fanhype .fh-boats{position:absolute; left:0; right:0; bottom:15cqh; display:flex; gap:2.2cqw; justify-content:center; align-items:flex-end;}
+  #fanhype .fh-boat{width:13cqw; max-width:150px; text-align:center; opacity:.32; transform:translateY(6px); transition:opacity .3s;}
+  #fanhype .fh-boat.jn{opacity:1;}
+  #fanhype .fh-boat.jn .fh-kw{animation:fhRev .16s linear infinite;}
+  @keyframes fhRev{0%{transform:skewX(-8deg) translateY(0) rotate(-1.2deg);}50%{transform:skewX(-8deg) translateY(-2px) rotate(1.2deg);}100%{transform:skewX(-8deg) translateY(0) rotate(-1.2deg);}}
+  #fanhype .fh-kw{width:6.4cqw; height:6.4cqw; max-width:74px; max-height:74px; margin:0 auto; border-radius:14px; display:grid; place-items:center;
+    font-family:var(--disp); font-size:clamp(24px,4.4cqw,42px); transform:skewX(-8deg);
+    background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc,#888);
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.35),0 8px 20px rgba(0,0,0,.5),0 0 26px -6px var(--bc,#888); color:var(--bt,#fff);}
+  #fanhype .fh-kw span{transform:skewX(8deg);}
+  #fanhype .fh-nm{margin-top:.8cqh; font-family:var(--jp); font-weight:800; font-size:clamp(13px,2.2cqw,18px); color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #fanhype .fh-boat .boaticon{width:9cqw; max-width:104px; height:auto; margin-top:.3cqh; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));}
+  #fanhype .fh-barwrap{position:absolute; left:12cqw; right:12cqw; bottom:6.5cqh; text-align:center;}
+  #fanhype .fh-barlabel{font-family:var(--lab); letter-spacing:.3em; font-size:clamp(12px,1.9cqw,16px); color:#bfe0f2; margin-bottom:1cqh;}
+  #fanhype .fh-bar{height:1.5cqh; min-height:10px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
+  #fanhype .fh-bar i{display:block; height:100%; width:0; border-radius:99px; background:linear-gradient(90deg,var(--cyan),var(--gold),var(--orange)); box-shadow:0 0 18px rgba(255,200,60,.7);}
+  #fanhype.rush{background:radial-gradient(120% 92% at 50% 32%,#3a1204,#1c0a04 58%,#0a0402);}
+  #fanhype.rush .fh-title{animation:fhPulse .4s ease-in-out infinite; background:linear-gradient(180deg,#fff,#ffdca0 45%,var(--orange)); -webkit-background-clip:text; background-clip:text;}
+  #fanhype.rush .fh-boat.jn .fh-kw{animation-duration:.1s;}
 </style>
 </head>
 <body>
@@ -118,6 +160,7 @@
   <div class="rev-winner" id="revWinner"></div>
   <div class="rev-vote" id="revVote"></div>
 </div>
+<div id="fanhype"></div>
 <div class="conn" id="conn">● 接続中</div>
 </div><!-- #tv -->
 <script src="qrcode.min.js"></script>
@@ -318,10 +361,33 @@
     revRaf=requestAnimationFrame(frame);
   }
 
+  // ===== 発走ファンファーレ演出（go→ファンファーレの間、大時計スタンバイの代わりに"煽り"を出す）=====
+  const fanhype=$('#fanhype'); let hypeRushT=0;
+  const VNM={naruto:'鳴門',kojima:'児島',marugame:'丸亀'};
+  function startHype(ms){
+    if(ms<1200){ endHype(); return; }   // 復元などで残り時間が短い時は演出せず時計へ
+    const nm=names(), jn=(cur&&cur.joined)||[], venue=VNM[(cur&&cur.venue)]||'';
+    let boats=''; for(let i=0;i<N;i++){ const j=jn[i];
+      boats+=`<div class="fh-boat ${j?'jn':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="fh-kw"><span>${i+1}</span></div>${boatSVG()}<div class="fh-nm">${j?esc(nm[i]||(i+1+'号艇')):'—'}</div></div>`; }
+    fanhype.innerHTML=`<div class="fh-rays"></div><div class="fh-light l1"></div><div class="fh-light l2"></div>`+
+      `<div class="fh-top">${venue?('<b>'+venue+'</b> ・ '):''}R${(cur&&cur.round)||1} ・ START TIMING BATTLE</div>`+
+      `<div class="fh-mid"><div class="fh-kicker">GET READY</div><div class="fh-title">まもなく発走！</div><div class="fh-sub">大時計に集中！ ねらうは <b>0.15</b></div></div>`+
+      `<div class="fh-boats">${boats}</div>`+
+      `<div class="fh-barwrap"><div class="fh-barlabel">発走まで</div><div class="fh-bar"><i id="fhBarFill"></i></div></div>`;
+    fanhype.classList.remove('rush'); fanhype.classList.add('on');
+    const fill=$('#fhBarFill');
+    if(fill){ fill.style.transition='none'; fill.style.width='0%';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ fill.style.transition='width '+ms+'ms linear'; fill.style.width='100%'; })); }   // 発走までのアンカーバーを尺ぴったりで満タンに
+    clearTimeout(hypeRushT); hypeRushT=setTimeout(()=>{ if(!fanhype.classList.contains('on'))return;
+      fanhype.classList.add('rush'); const t=fanhype.querySelector('.fh-title'), su=fanhype.querySelector('.fh-sub');
+      if(t)t.textContent='構えて！！'; if(su)su.innerHTML='大時計が<b>消えたら</b>PUSH！'; }, Math.max(0,ms-3000));   // ラスト3秒で赤く加速
+  }
+  function endHype(){ clearTimeout(hypeRushT); if(fanhype){ fanhype.classList.remove('on','rush'); fanhype.innerHTML=''; } }
+
   // 大時計（表示専用・go信号で開始）
   const cdnum=()=>$('#cdnum'), blind=()=>$('#blind'), hand=()=>$('#hand'), prog=()=>$('#progress'), clk=()=>$('#clockSvg');
   let raf=0,t0=0,hidden=false,lastB=99, running=false, goAtV=0;
-  function startClock(){ running=true; hidden=false; lastB=99; cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }   // t0を真の発走時刻(goAt)にアンカー
+  function startClock(){ endHype(); running=true; hidden=false; lastB=99; cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; t0=performance.now()-Math.max(0,Math.min(bus.serverNow()-goAtV,3000)); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }   // t0を真の発走時刻(goAt)にアンカー
   function loop(now){ const el=(now-t0)/1000, remain=ZERO_AT-el, frac=Math.min(el/ZERO_AT,1);
     if(!hidden){ prog().style.strokeDashoffset=RING_LEN*(1-frac); hand().style.transform=`rotate(${frac*360}deg)`; hand().style.transformOrigin='100px 100px';
       if(remain>HIDE_REMAIN){ cdnum().textContent=Math.max(0,Math.ceil(remain)); const s=Math.ceil(remain); if(s!==lastB){lastB=s; tone(760,0,.06,'sine',.14);} }
@@ -329,10 +395,11 @@
     if(el<ZERO_AT+2.8){ raf=requestAnimationFrame(loop); } else { running=false; } }
 
   function armClock(){ try{ running=false; cancelAnimationFrame(raf); cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; }catch(e){} }
-  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); } else if(m.type==='go'){ show('count'); armClock(); playBGM('fanfare'); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); setTimeout(()=>{ startClock(); }, Math.max(0,delay)); } });   // 発走ファンファーレを流し切る→大時計(よーいドン)。間は時計をスタンバイ表示で待機
+  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); } else if(m.type==='go'){ show('count'); armClock(); playBGM('fanfare'); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); startHype(delay); setTimeout(()=>{ startClock(); }, Math.max(0,delay)); } });   // 発走ファンファーレ中は"煽り演出"(#fanhype)→流し切ったら大時計(よーいドン)
   function onState(s){
     BGM.setVenue(s.venue||'naruto');
     if(s.phase!=='result') stopReveal();
+    if(s.phase!=='countdown') endHype();   // カウントダウン以外へ移ったら煽り演出を確実に閉じる
     if(s.phase!=='prize') prevPrize=false;
     $('#rnoV').textContent='R'+s.round; $('#rnoR').textContent='R'+s.round;
     if(s.phase==='lobby'){ show('lobby'); buildLobby(); }
