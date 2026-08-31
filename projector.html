@@ -115,12 +115,10 @@
     background-position:0 0,0 0,0 0,0 100%;}
   #tv.lp #lpbg{display:block;}
   #tv.lp .scene{opacity:0;}   /* 暗い夜景シーンを隠してLP背景に */
-  /* 絣（かすり）ボーダー：左右の帯 */
-  #lpbg::before,#lpbg::after{content:""; position:absolute; top:0; bottom:0; width:30px; z-index:2;
-    background:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'><rect width='30' height='30' fill='%23227fb8'/><path d='M15 3 L24 15 L15 27 L6 15 Z' fill='%23d7effa'/><path d='M15 8 L20 15 L15 22 L10 15 Z' fill='%23227fb8'/><circle cx='15' cy='15' r='2.4' fill='%23d7effa'/><rect x='0' y='13.5' width='5' height='3' fill='%23d7effa'/><rect x='25' y='13.5' width='5' height='3' fill='%23d7effa'/></svg>") repeat-y;
-    background-size:30px 30px; box-shadow:0 0 14px rgba(0,60,90,.25);}
-  #lpbg::before{left:0;} #lpbg::after{right:0;}
+  /* ミンサー柄の側帯：LP(瀬戸内3場祭り)から実物を切り出したPNGをそのまま使用 */
+  #lpbg::before,#lpbg::after{content:""; position:absolute; top:0; bottom:0; width:40px; z-index:2; box-shadow:0 0 14px rgba(0,60,90,.25);}
+  #lpbg::before{left:0;  background:url("img/minsah_left.png")  top left  / 100% auto repeat-y;}
+  #lpbg::after{right:0;  background:url("img/minsah_right.png") top right / 100% auto repeat-y;}
   /* 会場キャラ（なるちゃん/スマイル/ガーコ） */
   .lpchar{position:absolute; z-index:3; pointer-events:none; display:none; filter:drop-shadow(0 8px 12px rgba(0,60,90,.28));}
   #tv.lp .lpchar.on{display:block;}
