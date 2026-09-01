@@ -78,8 +78,11 @@
   function playSynth(cue,opts){ /* 合成音は完全撤去：mp3が無いcueは無音（信弦さん指示） */ }
 
   // ================= 公開API =================
-  function play(cue,opts){ opts=opts||{}; unlocked=true; active=cue;
+  function play(cue,opts){ opts=opts||{}; unlocked=true;
     const src=srcFor(cue);
+    // 同じcueが既にループ再生中なら鳴らし直さない（currentTime=0での再スタート＝プチ途切れを防ぐ。parade再遷移やrace二重呼び対策）
+    if(cue===active && curMp3 && !curMp3.paused && curMp3.src.indexOf(src)>=0){ if(opts.loop) curMp3.loop=true; return; }
+    active=cue;
     if(avail[src]===true){ playMp3(cue,opts); return; }
     if(src in avail){ fallbackParade(); return; }                                            // mp3無し確定→会場paradeで代替（無音回避・合成音は使わない）
     probe(cue).then(ok=>{ if(active!==cue) return; if(ok) playMp3(cue,opts); else fallbackParade(); });  // 未確認→確認後に本cue or 代替
