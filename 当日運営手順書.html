@@ -41,8 +41,8 @@
 
   <h2>0. これは何か</h2>
   <div class="card">
-    6人の挑戦者が「スタート0.15チャレンジ」に挑み、観客が優勝者を予想投票。0秒にいちばん近い（＝神スタート）人が優勝、当てた観客に商品プレゼント。
-    <b>投影・挑戦者スマホ・観客スマホ・運営</b>の4画面がリアルタイム連動します。
+    <b>全員参加型</b>。挑戦者（1ラウンド10人）が「スタート0.15チャレンジ」に挑み、大時計が0を差す瞬間にいちばん近い（＝神スタート）順に着順が決まります。<b>0秒に近い上位3名に商品プレゼント</b>。
+    <b>投影・挑戦者スマホ・運営</b>の3画面がリアルタイム連動します（観客の投票枠は廃止）。
   </div>
 
   <h2>1. 事前準備（開場前）</h2>
@@ -55,22 +55,20 @@
   </div>
   <table>
     <tr><th>役割</th><th>開くURL</th><th>端末</th></tr>
-    <tr><td>📺 投影（大画面）</td><td><code>https://kamisense-015-production.up.railway.app/screen</code></td><td>プロジェクター/大型モニタ</td></tr>
-    <tr><td>🎛 運営</td><td><code>https://kamisense-015-production.up.railway.app/admin</code></td><td>MCの手元PC/タブレット</td></tr>
-    <tr><td>🏁 挑戦者（×6）</td><td><code>https://kamisense-015-production.up.railway.app/player</code></td><td>挑戦者各自のスマホ</td></tr>
-    <tr><td>🎫 観客（投票）</td><td><code>https://kamisense-015-production.up.railway.app/vote</code></td><td>観客のスマホ</td></tr>
+    <tr><td>📺 投影（大画面）</td><td><code>https://kamisense-015.onrender.com/screen</code></td><td>プロジェクター/大型モニタ</td></tr>
+    <tr><td>🎛 運営</td><td><code>https://kamisense-015.onrender.com/admin</code></td><td>MCの手元PC/タブレット</td></tr>
+    <tr><td>🏁 挑戦者（×10）</td><td><code>https://kamisense-015.onrender.com/player</code></td><td>挑戦者各自のスマホ</td></tr>
   </table>
-  <div class="note"><span class="tag">導線</span>観客は<b>投影ロビーのQR</b>から <code>/vote</code> に参加。<b>挑戦者URL(<code>/player</code>)は投影に出さず、運営画面からコピーして指定6人へ個別に送る</b>（誤参加防止）。</div>
+  <div class="note"><span class="tag">導線</span>挑戦者は<b>投影ロビーのQR</b>または運営画面のQR(<code>/player</code>)から参加（号艇を選択）。1ラウンド10人・2ラウンドで全員が1回挑戦できる想定。スマホがない人は運営の共有端末で対応。</div>
 
   <h2>2. 当日の進行フロー（1ラウンド）</h2>
   <div class="flow">
     <div class="step"><b>会場を選ぶ</b>：運営ロビーの「1部 鳴門 / 2部 児島 / 3部 丸亀」から今の部を選択 → 投影のBGMがその会場に切替。</div>
-    <div class="step"><b>挑戦者エントリー</b>：6人が各自スマホ(<code>/player</code>)で号艇を選んで参加。投影ロビーに枠が点灯。周回展示BGMが流れる。</div>
-    <div class="step"><b>「投票フェーズへ」</b>を押す → 観客が投影QRから <code>/vote</code> で優勝を予想投票。オッズがリアルタイム変動。</div>
-    <div class="step"><b>「投票締切 → スタート勝負」</b>を押す → 締切音→ファンファーレ→大時計スタート。6人が<b>同時</b>に、大時計が消えたら感覚でPUSH（走行音）。</div>
-    <div class="step"><b>全員完了で自動的に結果へ</b>（手動なら「結果発表へ」）。0秒に近い順の着順を投影。</div>
-    <div class="step"><b>「結果・プレゼント発表」</b> → 優勝者＆商品プレゼント演出。優勝を当てた観客が対象。</div>
-    <div class="step"><b>「次のラウンド（同メンバー）」</b>で次へ。会場を変える部では、運営ロビーで会場を選び直す。</div>
+    <div class="step"><b>挑戦者エントリー</b>：10人が各自スマホ(<code>/player</code>)で号艇を選んで参加。投影ロビーに枠が点灯。場内BGMが流れる。</div>
+    <div class="step"><b>「スタート勝負へ（発走）」</b>を押す → ファンファーレ→大時計スタート。10人が<b>同時</b>に、大時計が消えたら感覚でPUSH（走行音）。</div>
+    <div class="step"><b>全員PUSHを見届けたら「結果発表へ」</b>。助走→スタートを切る演出のあと、0秒に近い順の着順を投影。</div>
+    <div class="step"><b>「商品プレゼント発表へ」</b> → 0秒に近い<b>上位3名</b>を表彰台で発表＆商品プレゼント演出。</div>
+    <div class="step"><b>「次のラウンド（同メンバー）」</b>で次へ（別メンバーで回す部は「最初から」）。会場を変える部では、運営ロビーで会場を選び直す。</div>
   </div>
 
   <h2>3. 音（BGM）の流れ</h2>
@@ -87,16 +85,17 @@
     <tr><td>サーバーが落ちた</td><td>再度 <code>node server.js</code>。<b>前回の進行状態を復元</b>して続行できます。</td></tr>
     <tr><td>スマホが「未接続」表示</td><td>ネット接続を確認（Wi-Fi／モバイル回線）。ブラウザを再読込。URLが合っているか確認。</td></tr>
     <tr><td>音が鳴らない</td><td>投影画面を1回クリック（音声解禁）。🔊ボタンでミュート解除。mp3が <code>bgm/&lt;会場&gt;/parade.mp3</code> ・ <code>bgm/common/&lt;cue&gt;.mp3</code> に置いてあるか確認。</td></tr>
-    <tr><td>挑戦者が参加できない</td><td><code>/player</code> URLを個別に再送。既に埋まった号艇は選べません（別の号艇へ）。</td></tr>
+    <tr><td>挑戦者が参加できない</td><td>投影/運営のQRを再提示。既に埋まった号艇は選べません（別の号艇へ）。エントリー受付は「ロビー」中のみ。</td></tr>
     <tr><td>やり直したい</td><td>運営の「最初から」で全リセット。会場選択は保持されます。</td></tr>
   </table>
 
   <h2>5. 注意点</h2>
   <ul>
-    <li>投影に出すのは<b>観客の投票QRだけ</b>。挑戦者URLは個別配布（誤参加防止）。</li>
+    <li><b>全員参加型</b>：観客の投票枠は廃止。参加者全員が挑戦者としてスタート勝負に挑みます。</li>
+    <li><b>賞は上位3名</b>：0秒にいちばん近い上位3名に商品プレゼント（フライング＝号砲前スタートは失格）。</li>
     <li>運営画面(<code>/admin</code>)は<b>ゲームの頭脳</b>。開きっぱなしにしてください（閉じても復旧はできますが、開いていること前提）。</li>
     <li><b>公開URL運用</b>：各端末がネットに繋がっていれば、同じWi-Fiでなくても・会場外/遠隔からも同じURLで参加できます。</li>
-    <li>運営画面(<code>/admin</code>)に <b>挑戦者・観客のQR</b> があります。挑戦者QRは指定6人だけに見せ、投票QRは観客へ（投影ロビーにも表示）。</li>
+    <li>挑戦者QRは投影ロビーと運営画面(<code>/admin</code>)の両方に表示されます。</li>
   </ul>
 
   <div class="sub" style="margin-top:30px">株式会社エスノヴァ ／ ボートレースPRイベント用</div>

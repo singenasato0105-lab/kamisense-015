@@ -5,7 +5,7 @@
    仕組み：
      GET  /events  … SSE。接続中の全端末へ配信。接続直後に最新stateを送って遅参も即同期。
      POST /send    … 端末からのメッセージ受信→中継。admin発は全端末へ、参加者(挑戦者/投票者)発はadminへ。
-     静的配信      … / (役割選択) /admin /screen(投影) /player(挑戦者) /vote(投票者)
+     静的配信      … / (役割選択) /admin /screen(投影) /player(挑戦者)  ※全員参加型（投票者枠は廃止）
    起動： node server.js  （PORT=9000 node server.js でポート変更）
 */
 const http=require('http'), fs=require('fs'), path=require('path');
@@ -21,10 +21,13 @@ function baseUrl(req){
   return 'http://'+host+'/';
 }
 let clients=[], lastState=null, stateVer=0, seqN=0, inbox=[];
-const N=6;
+const N=10;   // 全員参加型：1ラウンド10艇（9/1会議で投票枠を廃止、6→10に拡張）
 // 進行状態のクラッシュ復旧：ディスクに保存し、起動時に復元
 const SAVE=path.join(ROOT,'kami-state.json');
-try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ lastState=JSON.parse(raw); stateVer=1; console.log('前回の進行状態を復元しました'); } }catch(e){}
+try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ const st=JSON.parse(raw);
+  const ok = st&&st.s&&Array.isArray(st.s.joined)&&st.s.joined.length===N&&Array.isArray(st.s.results)&&st.s.results.length===N&&Array.isArray(st.s.names)&&st.s.names.length===N;
+  if(ok){ lastState=st; stateVer=1; console.log('前回の進行状態を復元しました'); }
+  else console.log('保存状態が現行仕様(N='+N+')と不一致のため破棄して初期化します'); } }catch(e){}
 // 永続化はデバウンス：投票1票ごとにディスクへ書くと高負荷時に詰まるため最大1秒に1回へ束ねる。
 // 運営操作（フェーズ/リセット等）は即時保存、プロセス終了時も必ず書き切る（下部のSIGTERM/SIGINT）。
 let persistT=null, persistDirty=false;
@@ -36,13 +39,12 @@ function persist(immediate){ persistDirty=true;
 // 毎リクエストは now/seq の短い前置きだけ連結して返す（毎回の全状態stringifyを排除＝ポーリング嵐でもCPUを食わない）。
 let _stateBody=null, _stateBodyVer=-1;
 function stateBody(){ if(_stateBodyVer!==stateVer){ _stateBody=JSON.stringify(lastState); _stateBodyVer=stateVer; } return _stateBody; }
-function defaultState(v){ return {type:'state',src:'admin',s:{phase:'lobby',round:1,gameId:Date.now(),venue:v||'naruto',names:new Array(N).fill(null),joined:new Array(N).fill(false),votes:new Array(N).fill(0),results:new Array(N).fill(null),goSeq:0}}; }
+function defaultState(v){ return {type:'state',src:'admin',s:{phase:'lobby',round:1,gameId:Date.now(),venue:v||'naruto',names:new Array(N).fill(null),joined:new Array(N).fill(false),results:new Array(N).fill(null),goSeq:0}}; }
 if(!lastState||!lastState.s){ lastState=defaultState(); stateVer=Math.max(stateVer,1); }
 // 参加者メッセージをサーバー側で集計（運営が閉じていても取りこぼさない）
 function applyParticipant(m){ const s=lastState.s; const b=m.boat;
   if(typeof b!=='number'||b<0||b>=N) return false;
-  if(m.type==='join'){ if(s.phase!=='lobby'&&s.phase!=='vote') return false; s.joined[b]=true; s.names[b]=m.name||s.names[b]||('挑戦者'+String.fromCharCode(65+b)); return true; }
-  if(m.type==='vote'){ if(s.phase!=='vote') return false; s.votes[b]=(s.votes[b]||0)+1; return true; }
+  if(m.type==='join'){ if(s.phase!=='lobby') return false; s.joined[b]=true; s.names[b]=m.name||s.names[b]||('挑戦者'+String.fromCharCode(65+b)); return true; }
   if(m.type==='result'){ if(s.results[b]==null){ s.results[b]=m.st; return true; } }   // 記録だけ。結果へは運営が手動で進める（自動遷移なし）
   return false; }
 // 運営の操作コマンドを適用（フェーズ/会場/スタート/次ラウンド/リセット）
@@ -50,7 +52,7 @@ function applyCmd(m){ const s=lastState.s, a=m.action;
   if(a==='venue'){ s.venue=m.value; }
   else if(a==='phase'){ s.phase=m.value; }
   else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||20500); }   // 発走ファンファーレ(実測18.83秒)を最後まで流し切ってから大時計(よーいドン)。投影の再生開始遅延(0.3〜0.6秒)＋余韻を見込んで20.5秒。ファンファーレ差替時はこの値を尺+約1.6秒に合わせる
-  else if(a==='next'){ s.round=(s.round||1)+1; s.votes=new Array(N).fill(0); s.results=new Array(N).fill(null); s.phase='vote'; }
+  else if(a==='next'){ s.round=(s.round||1)+1; s.results=new Array(N).fill(null); s.phase='lobby'; }   // 次ラウンド：同メンバーのままロビーへ戻し、運営が発走。別メンバーで回すなら reset（最初から）
   else if(a==='reset'){ lastState.s=defaultState(s.venue).s; }
   return true; }
 function serveFile(res,file,req){
@@ -113,11 +115,10 @@ const server=http.createServer((req,res)=>{
   if(p==='/admin')p='/admin.html';
   if(p==='/screen')p='/projector.html';
   if(p==='/player')p='/player.html';
-  if(p==='/vote')p='/voter.html';
   if(p==='/guide')p='/当日運営手順書.html';
   if(p==='/wall')p='/wall.html';
   if(p==='/healthz'){res.writeHead(200,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('ok v2-load clients='+clients.length);return;}
-  const allow=['/index.html','/admin.html','/projector.html','/player.html','/voter.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js'];
+  const allow=['/index.html','/admin.html','/projector.html','/player.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js'];
   if(allow.includes(p)){serveFile(res,p.slice(1),req);return;}
   if(/^\/bgm\/[a-z]+\/[a-z0-9_]+\.(mp3|ogg|m4a|wav)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // BGM音源
   if(/^\/img\/[a-z0-9_-]+\.(svg|png|jpg|jpeg|webp)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // 会場キャラ等の画像
@@ -130,7 +131,6 @@ server.listen(PORT,()=>{
   console.log('  投影     : http://localhost:'+PORT+'/screen');
   console.log('  運営     : http://localhost:'+PORT+'/admin');
   console.log('  挑戦者   : http://localhost:'+PORT+'/player');
-  console.log('  投票者   : http://localhost:'+PORT+'/vote');
   console.log('  会場LAN  : http://'+ip+':'+PORT+'/');
 });
 setInterval(()=>{const p='data: '+JSON.stringify({type:'ping',src:'admin'})+'\n\n';clients.forEach(c=>{try{c.res.write(p);}catch(e){}});},3000);

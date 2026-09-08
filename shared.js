@@ -49,9 +49,9 @@ function makeBus(role){
 function setConn(ok){ try{ const e=document.getElementById('conn'); if(e){ e.className='conn '+(ok?'ok':'ng'); e.textContent=(ok?'● 接続中':'○ 未接続'); } }catch(e){} }
 function appUrl(){ try{ if(window.APP_URL)return window.APP_URL; return (location.origin||'')+'/'; }catch(e){ return '/'; } }
 
-const N=6, TARGET=0.15, ZERO_AT=10.0, HIDE_REMAIN=4.0, RING_LEN=578, TAKEOUT=0;
-const COL=[{b:'var(--k1)',t:'var(--k1t)'},{b:'var(--k2)',t:'var(--k2t)'},{b:'var(--k3)',t:'var(--k3t)'},{b:'var(--k4)',t:'var(--k4t)'},{b:'var(--k5)',t:'var(--k5t)'},{b:'var(--k6)',t:'var(--k6t)'}];
-const HEX=['#ffffff','#1b1f26','#ff2b3e','#1f7bff','#ffd21e','#15b45f'];
+const N=10, TARGET=0.15, ZERO_AT=10.0, HIDE_REMAIN=4.0, RING_LEN=578, TAKEOUT=0;
+const COL=[{b:'var(--k1)',t:'var(--k1t)'},{b:'var(--k2)',t:'var(--k2t)'},{b:'var(--k3)',t:'var(--k3t)'},{b:'var(--k4)',t:'var(--k4t)'},{b:'var(--k5)',t:'var(--k5t)'},{b:'var(--k6)',t:'var(--k6t)'},{b:'var(--k7)',t:'var(--k7t)'},{b:'var(--k8)',t:'var(--k8t)'},{b:'var(--k9)',t:'var(--k9t)'},{b:'var(--k10)',t:'var(--k10t)'}];
+const HEX=['#ffffff','#2c333e','#ff2b3e','#1f7bff','#ffd21e','#15b45f','#ff7a1a','#ff5aa0','#8b3fd6','#8e9aa6'];
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 /* ボートレース本準拠のST評価：0秒に近いほど攻めた神スタート */
 function grade(st){

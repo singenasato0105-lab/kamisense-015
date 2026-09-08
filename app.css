@@ -7,6 +7,8 @@
   --jp:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",sans-serif;
   --k1:#ffffff; --k1t:#0e2b42; --k2:#2c333e; --k2t:#fff; --k3:#ff2b3e; --k3t:#fff;
   --k4:#1f7bff; --k4t:#fff; --k5:#ffd21e; --k5t:#1a1a1a; --k6:#15b45f; --k6t:#fff;
+  /* 7〜10号艇：競艇/競輪の詰まった色順に準拠（7=橙 8=桃 9=紫 10=灰）＝10艇対応 */
+  --k7:#ff7a1a; --k7t:#1a1a1a; --k8:#ff5aa0; --k8t:#fff; --k9:#8b3fd6; --k9t:#fff; --k10:#8e9aa6; --k10t:#0e2b42;
 }
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
 html,body{min-height:100%;}

@@ -31,8 +31,7 @@
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
   .p-screen{grid-column:1;grid-row:1 / span 2;}
   .p-admin{grid-column:2 / span 2;grid-row:1;}
-  .p-player{grid-column:2;grid-row:2;}
-  .p-voter{grid-column:3;grid-row:2;}
+  .p-player{grid-column:2 / span 2;grid-row:2;}
 </style>
 </head>
 <body>
@@ -43,8 +42,7 @@
     <span class="sp"></span>
     <div class="reh">
       <span class="dlabel">リハ用</span>
-      <button class="sm" id="dEntry" title="空き枠をデモ名で6艇に">デモ6艇</button>
-      <button class="sm" id="dVote" title="デモの予想投票を加える">デモ投票+</button>
+      <button class="sm" id="dEntry" title="空き枠をデモ名で10艇に">デモ10艇</button>
       <button class="sm" id="dResult" title="未PUSH枠をデモ結果で埋める">デモ結果</button>
     </div>
     <select id="venue" title="会場BGM">
@@ -60,14 +58,12 @@
     <div class="panel p-screen"><h3>📺 投影（大画面） <span class="tag">/screen</span></h3><div class="fr"><iframe id="if_screen" src="/screen"></iframe></div></div>
     <div class="panel p-admin"><h3>🎛 運営（このパネルで進行できます） <span class="tag">/admin</span></h3><div class="fr"><iframe src="/admin"></iframe></div></div>
     <div class="panel p-player"><h3>🏁 挑戦者・1号艇 安里信弦（スマホ） <span class="tag">/player（自動）</span></h3><div class="fr"><iframe src="/player?auto=1&name=%E5%AE%89%E9%87%8C%E4%BF%A1%E5%BC%A6"></iframe></div></div>
-    <div class="panel p-voter"><h3>🎫 観客・投票（スマホ） <span class="tag">/vote</span></h3><div class="fr"><iframe src="/vote"></iframe></div></div>
   </div>
 
 <script>
-const N=6;
-const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治'];   // リハ補充用のデモ名（1号艇=安里信弦）
-const STS=[0.10,0.22,0.04,-0.06,0.13,0.31];       // リハ補充用のデモST（3号艇0.04=神スタート / 4号艇フライング）
-const VOTES=[3,1,9,2,6,1];                          // リハ補充用のデモ票
+const N=10;
+const NAMES=['安里信弦','毒島誠','石野貴之','茅原悠紀','遠藤エミ','白井英治','峰竜太','馬場貴也','平本真之','原田幸哉'];   // リハ補充用のデモ名（1号艇=安里信弦）
+const STS=[0.10,0.22,0.04,-0.06,0.13,0.31,0.08,0.17,0.02,0.25];       // リハ補充用のデモST（9号艇0.02=神スタート / 4号艇フライング）
 const post=(m)=>fetch('/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m)});
 const getState=async()=>{ try{ const r=await fetch('/state',{cache:'no-store'}).then(r=>r.json()); return (r&&r.state&&r.state.s)?r.state.s:null; }catch(e){ return null; } };
 const put=(s)=>post({type:'state',src:'admin',s});   // 状態を丸ごと反映（必ず最新stateを読んでからmergeして呼ぶ＝実参加者を壊さない）
@@ -76,32 +72,29 @@ const stEl=document.getElementById('st'), nextBtn=document.getElementById('next'
 
 // フェーズ駆動の進行。ボタンは「今のフェーズの次」を出すだけ＝実際の状態に常に追従。挑戦者/観客の実データは一切上書きしない。
 const FLOW={
-  lobby:    {to:'vote',      btn:'投票受付へ',                 st:'ロビー（参加受付）',   hint:'挑戦者がQRで参加 → 揃ったら「投票受付へ」'},
-  vote:     {to:'countdown', btn:'発走！（ファンファーレ→大時計）', st:'投票受付中',         hint:'観客が優勝を予想 → 締めたら「発走」'},
+  lobby:    {to:'countdown', btn:'発走！（ファンファーレ→大時計）', st:'ロビー（参加受付）',   hint:'挑戦者がQRで参加（10艇）→ 揃ったら「発走」'},
   countdown:{to:'result',    btn:'結果発表',                   st:'発走／大時計',        hint:'ファンファーレ鳴り切り→大時計→全員PUSHを見届けたら「結果発表」'},
-  result:   {to:'prize',     btn:'商品プレゼントへ 🎁',         st:'結果発表（着順演出）',  hint:'走行演出のあと「商品プレゼントへ」'},
-  prize:    {to:'nextround', btn:'次のラウンドへ',             st:'商品プレゼント',       hint:'的中者に賞品 → 「次のラウンドへ」'},
+  result:   {to:'prize',     btn:'商品プレゼントへ 🎁',         st:'結果発表（スタート演出）', hint:'スタート演出のあと「商品プレゼントへ」'},
+  prize:    {to:'nextround', btn:'次のラウンドへ',             st:'商品プレゼント（上位3名）', hint:'上位3名に賞品 → 「次のラウンドへ」'},
 };
-const ORDER=['lobby','vote','countdown','result','prize'];
+const ORDER=['lobby','countdown','result','prize'];
 function reflect(s){ const ph=(s&&s.phase)||'lobby', f=FLOW[ph]||FLOW.lobby, rd=(s&&s.round)||1;
   nextBtn.textContent='▶ '+f.btn; hintEl.textContent=f.hint;
-  stEl.textContent=f.st+' ・ R'+rd; stepnoEl.textContent='STEP '+(ORDER.indexOf(ph)+1)+'/5'; }
+  stEl.textContent=f.st+' ・ R'+rd; stepnoEl.textContent='STEP '+(ORDER.indexOf(ph)+1)+'/'+ORDER.length; }
 
 // ＝＝ 本流：次のフェーズへ進めるだけ（非破壊）＝＝
 nextBtn.onclick=async()=>{ nextBtn.disabled=true; try{
   const c=await getState(); if(c){ const to=(FLOW[c.phase]||FLOW.lobby).to;
-    if(to==='vote'){ c.phase='vote'; }
-    else if(to==='countdown'){ c.phase='countdown'; c.results=Array(N).fill(null); c.goSeq=(c.goSeq||0)+1; c.goAt=Date.now()+20500; }   // 発走まで20.5秒＝ファンファーレ(18.83秒)を鳴り切ってから大時計
+    if(to==='countdown'){ c.phase='countdown'; c.results=Array(N).fill(null); c.goSeq=(c.goSeq||0)+1; c.goAt=Date.now()+20500; }   // 発走まで20.5秒＝ファンファーレ(18.83秒)を鳴り切ってから大時計
     else if(to==='result'){ c.phase='result'; }
     else if(to==='prize'){ c.phase='prize'; }
-    else if(to==='nextround'){ c.votes=Array(N).fill(0); c.results=Array(N).fill(null); c.round=(c.round||1)+1; c.phase='vote'; }
+    else if(to==='nextround'){ c.results=Array(N).fill(null); c.round=(c.round||1)+1; c.phase='lobby'; }   // 同メンバーのままロビーへ
     c.venue=venueSel.value; await put(c); reflect(c); }
 }catch(e){ stEl.textContent='失敗: '+e; } nextBtn.disabled=false; };
 
 // ＝＝ リハ用：一人で通し確認する時だけ、空き枠をデモで補充（実参加者は残す）＝＝
 document.getElementById('dEntry').onclick=async()=>{ const c=await getState()||{}; c.joined=c.joined||Array(N).fill(false); c.names=c.names||Array(N).fill(null);
   for(let i=0;i<N;i++){ if(!c.joined[i]){ c.joined[i]=true; c.names[i]=NAMES[i]; } } if(c.phase==null)c.phase='lobby'; c.venue=venueSel.value; await put(c); };
-document.getElementById('dVote').onclick=async()=>{ const c=await getState(); if(!c)return; for(let i=0;i<N;i++) c.votes[i]=(c.votes[i]||0)+VOTES[i]; await put(c); };
 document.getElementById('dResult').onclick=async()=>{ const c=await getState(); if(!c)return; c.results=c.results||Array(N).fill(null);
   for(let i=0;i<N;i++){ if(c.results[i]==null) c.results[i]=STS[i]; } await put(c); };
 
@@ -112,7 +105,6 @@ venueSel.onchange=async()=>{ await post({type:'cmd',src:'admin',action:'venue',v
 let syncing=false;
 async function sync(){ if(syncing)return; syncing=true; try{ const c=await getState(); if(c) reflect(c); }catch(e){} syncing=false; }
 setInterval(sync,1200); sync();
-refresh();
 </script>
 </body>
 </html>

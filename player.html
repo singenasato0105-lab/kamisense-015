@@ -117,11 +117,10 @@
   function onState(s){
     const prev=phase; phase=s.phase;
     if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
-    else if(s.phase==='vote'){ if(myBoat!=null){ show('wait'); $('#waitK').textContent='Voting'; $('#waitMsg').innerHTML='お客さんが優勝予想中…<br>まもなくあなたの番です。'; } else { show('join'); } }
     else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
     else if(s.phase==='result'||s.phase==='prize'){ if(myBoat!=null){ if(done){ show('done'); const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; }
-        const order=ranking(s.results); const win=order[0]; const iWon=(win===myBoat && s.results[win]!=null && s.results[win]>=0);
-        $('#doneMsg').innerHTML= iWon? '🏆 優勝！おめでとうございます！' : '結果は大画面をチェック！'; }
+        const order=ranking(s.results); const myRank=order.indexOf(myBoat); const inPrize=(myRank>=0 && myRank<3 && s.results[myBoat]!=null && s.results[myBoat]>=0);   // 上位3名が商品プレゼント対象
+        $('#doneMsg').innerHTML= inPrize? ('🎁 '+(myRank+1)+'着・入賞！おめでとうございます！<br>スタッフにお声がけください。') : '結果は大画面をチェック！'; }
       else { show('wait'); $('#waitMsg').textContent='結果発表中です。大画面をご覧ください。'; } } }
   }
 })();
