@@ -94,18 +94,18 @@
   @keyframes fhPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.055);}}
   #fanhype .fh-sub{margin-top:1.4cqh; font-family:var(--jp); font-weight:800; font-size:clamp(18px,3.4cqw,30px); color:#eaf6ff;}
   #fanhype .fh-sub b{color:var(--gold);}
-  #fanhype .fh-boats{position:absolute; left:0; right:0; bottom:15cqh; display:flex; gap:2.2cqw; justify-content:center; align-items:flex-end;}
-  #fanhype .fh-boat{width:13cqw; max-width:150px; text-align:center; opacity:.32; transform:translateY(6px); transition:opacity .3s;}
+  #fanhype .fh-boats{position:absolute; left:0; right:0; bottom:15cqh; display:flex; gap:1cqw; justify-content:center; align-items:flex-end;}
+  #fanhype .fh-boat{width:8.4cqw; max-width:104px; text-align:center; opacity:.32; transform:translateY(6px); transition:opacity .3s;}
   #fanhype .fh-boat.jn{opacity:1;}
   #fanhype .fh-boat.jn .fh-kw{animation:fhRev .16s linear infinite;}
   @keyframes fhRev{0%{transform:skewX(-8deg) translateY(0) rotate(-1.2deg);}50%{transform:skewX(-8deg) translateY(-2px) rotate(1.2deg);}100%{transform:skewX(-8deg) translateY(0) rotate(-1.2deg);}}
-  #fanhype .fh-kw{width:6.4cqw; height:6.4cqw; max-width:74px; max-height:74px; margin:0 auto; border-radius:14px; display:grid; place-items:center;
-    font-family:var(--disp); font-size:clamp(24px,4.4cqw,42px); transform:skewX(-8deg);
+  #fanhype .fh-kw{width:5cqw; height:5cqw; max-width:58px; max-height:58px; margin:0 auto; border-radius:12px; display:grid; place-items:center;
+    font-family:var(--disp); font-size:clamp(20px,3.4cqw,34px); transform:skewX(-8deg);
     background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc,#888);
     box-shadow:inset 0 0 0 2px rgba(255,255,255,.35),0 8px 20px rgba(0,0,0,.5),0 0 26px -6px var(--bc,#888); color:var(--bt,#fff);}
   #fanhype .fh-kw span{transform:skewX(8deg);}
-  #fanhype .fh-nm{margin-top:.8cqh; font-family:var(--jp); font-weight:800; font-size:clamp(13px,2.2cqw,18px); color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  #fanhype .fh-boat .boaticon{width:9cqw; max-width:104px; height:auto; margin-top:.3cqh; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));}
+  #fanhype .fh-nm{margin-top:.6cqh; font-family:var(--jp); font-weight:800; font-size:clamp(11px,1.7cqw,15px); color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #fanhype .fh-boat .boaticon{width:6.2cqw; max-width:74px; height:auto; margin-top:.3cqh; filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));}
   #fanhype .fh-barwrap{position:absolute; left:12cqw; right:12cqw; bottom:6.5cqh; text-align:center;}
   #fanhype .fh-barlabel{font-family:var(--lab); letter-spacing:.3em; font-size:clamp(12px,1.9cqw,16px); color:#bfe0f2; margin-bottom:1cqh;}
   #fanhype .fh-bar{height:1.5cqh; min-height:10px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
@@ -159,6 +159,32 @@
   #tv.lp #s_lobby .kicker{background:none; -webkit-background-clip:border-box; background-clip:border-box; color:#c9edff; -webkit-text-fill-color:#c9edff; text-shadow:0 1px 3px rgba(0,0,0,.45);}
   #tv.lp .lb .waitdot{color:#9fc6de;}
   #tv.lp #s_lobby .qsub{color:#93b6cc;}
+  /* ===== 10艇でロビーが1280×720に収まるよう縦を圧縮（画角切れ防止）===== */
+  #tv .wrap{padding:22px 14px 20px;}
+  #tv.lp #s_lobby{padding:16px 30px 18px;}
+  #tv #s_lobby .kicker{font-size:11px;}
+  #tv.lp #s_lobby .title{font-size:clamp(26px,5.4cqw,44px);}
+  #tv .lobbyboats{display:grid; grid-template-columns:repeat(5,64px); justify-content:center; gap:12px 14px; margin-top:12px;}
+  #tv .lb{width:64px;}
+  #tv .lb .kw{width:50px; height:50px; font-size:24px;}
+  #tv .lb .lbn{margin-top:5px; font-size:12px; min-height:1.2em;}
+  #tv .qrcta, #tv.lp #s_lobby .qrcta{margin-top:1.1cqh; font-size:clamp(17px,2.4cqw,26px);}
+  #tv .qrjoin{margin-top:1.1cqh;}
+  #tv .qrjoin .qrcard{padding:12px 16px 8px;}
+  #tv .qrjoin .qrcard .qimg{width:min(18cqw,176px); height:min(18cqw,176px);}
+  #tv .qrjoin .qrcard .qlbl{font-size:clamp(13px,1.7cqw,18px);}
+  #tv.lp .lp-fest{margin:0 auto 8px;}
+  /* ===== 結果テーブルは10行を1画面(720)に収める（画角切れ防止）===== */
+  #tv #s_result .qtext{margin-bottom:6px; font-size:clamp(15px,3cqw,20px);}
+  #tv #s_result .board{margin-top:6px;}
+  #tv #s_result .bhead{padding:7px 15px;}
+  #tv #s_result .colhead{padding:4px 15px;}
+  #tv #s_result .brow{padding:5px 15px;}
+  #tv #s_result .kw{width:38px; height:38px; font-size:20px;}
+  #tv #s_result .stc{font-size:22px;}
+  #tv #s_result .rankbadge{top:3px; left:36px;}
+  /* 2/3着ストリップ：長い名前2つでも横にはみ出さず折り返す */
+  #tv .rev-vote .hit{font-size:clamp(20px,2.9cqw,32px); padding:0 40px; line-height:1.4;}
 </style>
 </head>
 <body>
