@@ -29,13 +29,14 @@
 <div class="wrap">
   <div class="phasebar" id="phasebar"></div>
   <div class="qtext" id="phaseTitle">エントリー受付中</div>
+  <!-- 操作ボタンは10行の盤面より上に置く＝毎ラウンド「次の操作」がスクロールせず必ず見える -->
+  <div class="ctlbtns" id="ctl"></div>
+  <div class="totline">参加 <b id="joinCnt">0</b>/10　完了 <b id="resCnt">0</b>/<span id="joinCnt2">0</span></div>
   <div class="board" style="max-width:620px; width:100%">
     <div class="bhead"><span class="venue"><span class="rc"></span>Control Board</span><span class="rno"><span id="rno">R1</span></span></div>
     <div class="colhead"><span>枠</span><span>挑戦者</span><span id="ch3">ST</span><span id="ch4">着</span></div>
-    <div id="rows"></div>
+    <div id="rows" style="max-height:44vh; overflow-y:auto"></div>
   </div>
-  <div class="totline">参加 <b id="joinCnt">0</b>/10　完了 <b id="resCnt">0</b>/<span id="joinCnt2">0</span></div>
-  <div class="ctlbtns" id="ctl"></div>
   <div class="adminqr">
     <div class="aqr"><div class="q" id="qrPlayer"></div><div class="lb">🏁 挑戦者はこちら<small>号艇を選んで参加（10人）</small></div></div>
   </div>
