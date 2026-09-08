@@ -277,7 +277,7 @@
       const st=s.results[i]; const stc= st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>');
       const vr=vRank[i]; const rk= vr!=null ? (vr+1)+'着' : (st!=null&&st<0?'F':'—');
       const medal= (vr!=null&&vr<3) ? MEDAL[vr] : '';
-      h+=`<div class="brow ${(vr!=null&&vr<3)?'win':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><span class="rankbadge"><span>${rk}</span></span><div class="binfo"><div class="nm"><span class="txt">${esc(nm[i]||(i+1+'号艇'))}</span></div></div>${stc}<div class="odds" style="font-size:34px;line-height:1">${medal}</div></div>`; });
+      h+=`<div class="brow ${(vr!=null&&vr<3)?'win':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><span class="rankbadge"><span>${rk}</span></span><div class="binfo"><div class="nm"><span class="txt">${esc(nm[i]||(i+1+'号艇'))}</span></div></div>${stc}<div style="font-size:34px;line-height:1;text-align:center;color:initial;-webkit-text-fill-color:initial;background:none">${medal}</div></div>`; });
     $('#resultRows').innerHTML=h; }
   const RK3=['1着','2着','3着'];
   function buildPrize(){ const s=cur, order=ranking(s.results), nm=names();
