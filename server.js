@@ -10,7 +10,7 @@
 */
 const http=require('http'), fs=require('fs'), path=require('path');
 const PORT=process.env.PORT||8080, ROOT=__dirname;
-const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.ico':'image/x-icon','.mp3':'audio/mpeg','.ogg':'audio/ogg','.m4a':'audio/mp4','.wav':'audio/wav'};
+const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.ico':'image/x-icon','.mp3':'audio/mpeg','.ogg':'audio/ogg','.m4a':'audio/mp4','.wav':'audio/wav','.mp4':'video/mp4','.webm':'video/webm'};
 function lanIp(){const n=require('os').networkInterfaces();for(const k in n)for(const x of n[k])if(x.family==='IPv4'&&!x.internal)return x.address;return 'localhost';}
 function baseUrl(req){
   if(process.env.PUBLIC_URL)return process.env.PUBLIC_URL.replace(/\/?$/,'/');
@@ -122,6 +122,7 @@ const server=http.createServer((req,res)=>{
   if(allow.includes(p)){serveFile(res,p.slice(1),req);return;}
   if(/^\/bgm\/[a-z]+\/[a-z0-9_]+\.(mp3|ogg|m4a|wav)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // BGM音源
   if(/^\/img\/[a-z0-9_-]+\.(svg|png|jpg|jpeg|webp)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // 会場キャラ等の画像
+  if(/^\/vid\/[a-z0-9_-]+\.(mp4|webm)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // 結果演出の背景動画
   res.writeHead(404); res.end('not found');
 });
 server.listen(PORT,()=>{
