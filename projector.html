@@ -57,7 +57,7 @@
   .rev-title{position:absolute; top:33%; left:0; right:0; text-align:center; font-family:var(--jp); font-weight:900; font-style:italic; font-size:74px; letter-spacing:.04em; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff 55%,#7fd0ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 8px 30px rgba(47,228,255,.45)); opacity:0; transform:scale(.9); transition:opacity .4s,transform .4s; pointer-events:none;}
   .rev-title.show{opacity:1; transform:scale(1);}
   .rev-title .sub{display:block; font-size:20px; font-family:var(--lab); letter-spacing:.32em; font-style:normal; -webkit-text-fill-color:#8fb3c8; margin-top:10px;}
-  .rev-winner{position:absolute; left:0; right:0; top:8%; padding:22px 0 30px; text-align:center; opacity:0; transform:translateY(26px); transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1); pointer-events:none; text-shadow:0 3px 16px rgba(0,0,0,.75); background:radial-gradient(90% 130% at 50% 30%, rgba(3,11,18,.82), rgba(3,11,18,0) 72%);}
+  .rev-winner{position:absolute; left:0; right:0; top:8%; padding:22px 0 30px; text-align:center; opacity:0; transform:translateY(26px); transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1); pointer-events:none; text-shadow:0 3px 16px rgba(0,0,0,.75); background:radial-gradient(90% 130% at 50% 30%, rgba(3,11,18,.45), rgba(3,11,18,0) 72%);}
   .rev-winner.show{opacity:1; transform:translateY(0);}
   .rev-winner .lbl{font-family:var(--lab); letter-spacing:.34em; font-size:20px; color:#ffe08a;}
   .rev-winner .nm{font-family:var(--jp); font-weight:900; font-style:italic; font-size:72px; line-height:1.05; margin-top:8px; color:#fff; display:flex; gap:22px; align-items:center; justify-content:center; padding:0 40px;}
@@ -361,7 +361,7 @@
       lanes.forEach(i=> boatDraw(i));
       drawClock();
       const vg=ctx.createRadialGradient(W/2,H/2,H*0.36,W/2,H/2,H*0.86); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(6,50,80,.3)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
-      if(finished&&validWin){ ctx.fillStyle='rgba(2,10,18,.52)'; ctx.fillRect(0,0,W,H);
+      if(finished&&validWin){ ctx.fillStyle='rgba(2,10,18,.22)'; ctx.fillRect(0,0,W,H);
         const y=laneY(rowOf[win]);
         const lg=ctx.createLinearGradient(0,y-laneH*0.7,0,y+laneH*0.7); lg.addColorStop(0,'rgba(255,235,170,0)'); lg.addColorStop(.5,'rgba(255,235,170,.18)'); lg.addColorStop(1,'rgba(255,235,170,0)'); ctx.fillStyle=lg; ctx.fillRect(0,y-laneH*0.7,W,laneH*1.4);   // 勝者レーンをスポットライト
         const x=Math.min(xOf(win),lineX+70);
