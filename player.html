@@ -119,7 +119,7 @@
     if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
     else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
     else if(s.phase==='result'||s.phase==='prize'){ if(myBoat!=null){ if(done){ show('done'); const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; }
-        const order=ranking(s.results); const myRank=order.indexOf(myBoat); const inPrize=(myRank>=0 && myRank<3 && s.results[myBoat]!=null && s.results[myBoat]>=0);   // 上位3名が商品プレゼント対象
+        const order=ranking(s.results); const myRank=order.indexOf(myBoat); const inPrize=(myRank>=0 && myRank<2 && s.results[myBoat]!=null && s.results[myBoat]>=0);   // 上位2名が商品プレゼント対象
         $('#doneMsg').innerHTML= inPrize? ('🎁 '+(myRank+1)+'着・入賞！おめでとうございます！<br>スタッフにお声がけください。') : '結果は大画面をチェック！'; }
       else { show('wait'); $('#waitMsg').textContent='結果発表中です。大画面をご覧ください。'; } } }
   }

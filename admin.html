@@ -73,7 +73,7 @@
   function render(){
     document.getElementById('phasebar').innerHTML=PHASES.map(p=>`<span class="ph ${s.phase===p[0]?'on':''}">${p[1]}</span>`).join('');
     $('#rno').textContent='R'+s.round;
-    const titleMap={lobby:'エントリー受付中（挑戦者がスマホで参加・全員参加型）',countdown:'スタート勝負！（挑戦者がPUSH）',result:'結果発表（0秒に近い順）',prize:'商品プレゼント（上位3名）'};
+    const titleMap={lobby:'エントリー受付中（挑戦者がスマホで参加・全員参加型）',countdown:'スタート勝負！（挑戦者がPUSH）',result:'結果発表（0秒に近い順）',prize:'商品プレゼント（上位2名）'};
     $('#phaseTitle').textContent=titleMap[s.phase]||'';
     const showST=(s.phase==='result'||s.phase==='prize');
     const order=ranking(s.results), rankOf={}; order.forEach((idx,r)=>rankOf[idx]=r);
@@ -84,7 +84,7 @@
       const c3= showST ? (st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>')) : '<span class="stc pending">—</span>';
       const validRank=(showST&&s.joined[i]&&st!=null&&st>=0&&rankOf[i]!=null)?rankOf[i]:null;
       const c4= showST&&s.joined[i] ? ('<span class="odds">'+(validRank!=null?(validRank+1)+'着':'—')+'</span>') : '';
-      const winCls=(validRank!=null&&validRank<3)?'win':'';   // 上位3名を賞対象として強調
+      const winCls=(validRank!=null&&validRank<2)?'win':'';   // 上位2名を賞対象として強調
       h+=`<div class="brow ${winCls}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div>${showST?'<span class="rankbadge"><span>'+((validRank!=null?validRank+1:'-'))+'着</span></span>':''}<div class="binfo"><div class="nm"><span class="txt">${esc(nm)}</span>${(s.joined[i]?'':' ')}</div></div>${c3}${c4}</div>`;
     }
     document.getElementById('rows').innerHTML=h;
