@@ -9,6 +9,22 @@
   const VENUES=['naruto','kojima','marugame'];
   function srcFor(cue){ return cue==='parade' ? ('bgm/'+curVenue+'/parade.mp3') : ('bgm/common/'+cue+'.mp3'); }
 
+  // 各mp3の実測平均音量(ffmpeg volumedetect)に基づくレベル正規化。最も静かなnaruto paradeを1.0基準に、大きい曲を絞って
+  // cue切替時の"音量が上下"を解消。値=10^((-18.3 - mean_dB)/20)。
+  const VOL={ 'naruto/parade.mp3':1.00, 'kojima/parade.mp3':0.95, 'marugame/parade.mp3':0.68, 'common/race.mp3':0.67, 'common/fanfare.mp3':0.85 };
+  function volFor(src){ for(const k in VOL){ if(src.indexOf(k)>=0) return VOL[k]; } return 0.9; }
+  const XFADE=280;   // cue切替のクロスフェード(ms)。ハードカットの"途切れ"を無くす
+  function fadeTo(a,target,ms,done){ if(!a) return; try{ if(a._fr) cancelAnimationFrame(a._fr); }catch(e){} try{ if(a._ft) clearTimeout(a._ft); }catch(e){}
+    const tgt=Math.max(0,Math.min(1,target)); let fin=false;
+    const finish=()=>{ if(fin) return; fin=true; if(a._fr){ try{cancelAnimationFrame(a._fr);}catch(e){} a._fr=0; } try{ a.volume=tgt; }catch(e){} if(done) done(); };
+    const s=(typeof a.volume==='number')?a.volume:1, t0=performance.now();
+    const step=()=>{ const k=ms<=0?1:Math.min(1,(performance.now()-t0)/ms);
+      try{ a.volume=Math.max(0,Math.min(1, s+(tgt-s)*k)); }catch(e){}
+      if(k<1){ a._fr=requestAnimationFrame(step); } else { a._fr=0; finish(); } };
+    a._fr=requestAnimationFrame(step);
+    a._ft=setTimeout(finish, (ms||0)+80);   // rAF間引き対策：必ず最終音量に落とす（音量0で止まる事故を防ぐ）
+  }
+
   let unlocked=false, muted=false, curVenue='naruto', active=null, curMp3=null;
   const avail={};   // src -> true/false（mp3の有無キャッシュ）
   const A={};       // src -> Audio要素（生成は1回だけ・プリロードしてキャッシュ＝切替を瞬時に）
@@ -17,14 +33,20 @@
   function getAudio(src){ if(A[src]) return A[src]; const a=new Audio(); a.preload='auto'; a.src=src; try{ a.load(); }catch(e){} A[src]=a; return a; }
   function probe(cue){ const src=srcFor(cue); if(avail[src]===true) return Promise.resolve(true);
     return fetch(src,{cache:'no-store'}).then(r=>{ avail[src]=r.ok; if(r.ok) getAudio(src); return r.ok; }).catch(()=>{ avail[src]=false; return false; }); }
-  function playMp3(cue,opts){ stopCurrent(); const src=srcFor(cue), a=getAudio(src); curMp3=a;
+  function playMp3(cue,opts){ const prev=curMp3; stopLoop(); const src=srcFor(cue), a=getAudio(src); curMp3=a;
     a.onended = (!opts.loop && cue==='fanfare') ? function(){ if(active==='fanfare') play('parade',{loop:true}); } : null;   // ファンファーレが鳴り終わったら会場BGM(parade)を再開＝無音を作らない
-    try{ a.loop=!!opts.loop; a.muted=muted; try{ a.currentTime=0; }catch(e){} const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }
-    catch(e){} }
+    try{ a.loop=!!opts.loop; a.muted=muted; try{ a.currentTime=0; }catch(e){} a.volume=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }
+    catch(e){}
+    fadeTo(a, muted?0:volFor(src), XFADE);                                                  // 新cueをフェードイン(正規化音量へ)
+    if(prev && prev!==a){ fadeTo(prev, 0, XFADE, function(){ try{ prev.pause(); }catch(e){} }); }   // 旧cueをフェードアウトしてから停止
+  }
   function fallbackParade(){ const psrc=srcFor('parade'); if(avail[psrc]!==true) return;   // paradeも無ければ無音（合成音は使わない）
     if(curMp3 && curMp3.src.indexOf('/parade.mp3')>=0 && !curMp3.paused){ return; }        // 既にparade再生中なら切らずに継続
-    stopCurrent(); const a=getAudio(psrc); curMp3=a; try{ a.loop=true; a.muted=muted; const p=a.play(); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
-  function stopCurrent(){ if(curMp3){ try{ curMp3.pause(); }catch(e){} curMp3=null; } stopLoop(); }
+    const prev=curMp3; stopLoop(); const a=getAudio(psrc); curMp3=a;
+    try{ a.loop=true; a.muted=muted; a.volume=0; const p=a.play(); if(p&&p.catch)p.catch(()=>{}); }catch(e){}
+    fadeTo(a, muted?0:volFor(psrc), XFADE);
+    if(prev && prev!==a){ fadeTo(prev, 0, XFADE, function(){ try{ prev.pause(); }catch(e){} }); } }
+  function stopCurrent(){ if(curMp3){ try{ if(curMp3._fr)cancelAnimationFrame(curMp3._fr); }catch(e){} try{ curMp3.pause(); }catch(e){} curMp3=null; } stopLoop(); }
 
   // ================= 内蔵シンセ レイヤ =================
   let AC=null, synGain=null;
@@ -88,7 +110,7 @@
     probe(cue).then(ok=>{ if(active!==cue) return; if(ok) playMp3(cue,opts); else fallbackParade(); });  // 未確認→確認後に本cue or 代替
   }
   function stop(){ stopCurrent(); active=null; }
-  function setMute(m){ muted=!!m; if(curMp3){ try{ curMp3.muted=muted; }catch(e){} } if(synGain){ try{ synGain.gain.setTargetAtTime(muted?0:1, ac().currentTime, 0.02); }catch(e){} } }
+  function setMute(m){ muted=!!m; if(curMp3){ try{ curMp3.muted=muted; if(!muted){ curMp3.volume=volFor(curMp3.src); } }catch(e){} } if(synGain){ try{ synGain.gain.setTargetAtTime(muted?0:1, ac().currentTime, 0.02); }catch(e){} } }
   function setVenue(v){ if(!VENUES.includes(v)||v===curVenue) return; curVenue=v; probe('parade');
     if(active==='parade') play('parade',{loop:true}); else if(active==='race') play('race',{loop:true}); }
   function unlock(){ unlocked=true; ac(); master(); ['fanfare','result','close','race','parade'].forEach(probe); }
