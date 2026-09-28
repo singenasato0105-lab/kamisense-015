@@ -505,8 +505,8 @@
     if(s.phase==='lobby'){ show('lobby'); buildLobby(); }
     else if(s.phase==='countdown'){ show('count'); if(!running && prevPhase!=='countdown') { /* 待機表示。go信号で開始 */ }
       const jc=s.joined.filter(Boolean).length, rc=s.results.filter((r,i)=>s.joined[i]&&r!=null).length; $('#doneCount').textContent=rc+' / '+jc+' 完了'; }
-    else if(s.phase==='result'){ if(!revealing){ if(prevPhase!=='result'){ runReveal(s); } else { show('result'); buildResult(); } } }
-    else if(s.phase==='prize'){ stopReveal(); show('prize'); buildPrize(); }
+    else if(s.phase==='result'){ if(!revealing){ if(prevPhase!=='result' && prevPhase!==''){ runReveal(s); } else { show('result'); buildResult(); } } }   // 初回ロード(prevPhase='')で既にresultなら古い演出を再生せず静止表示
+    else if(s.phase==='prize'){ stopReveal(); if(prevPhase==='') prevPrize=true; show('prize'); buildPrize(); }   // 初回ロードのprizeはファンファーレ/紙吹雪を再発火させない
     if(s.phase!==prevPhase){
       if(s.phase==='lobby'){ if(prevPhase!=='lobby') playBGM('parade',{loop:true}); }
       else if(s.phase==='countdown'){ /* 発走ファンファーレはgo信号で鳴らす（→間→大時計） */ }

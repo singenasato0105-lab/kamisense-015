@@ -26,7 +26,10 @@ const N=10;   // 全員参加型：1ラウンド10艇（9/1会議で投票枠を
 const SAVE=path.join(ROOT,'kami-state.json');
 try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ const st=JSON.parse(raw);
   const ok = st&&st.s&&Array.isArray(st.s.joined)&&st.s.joined.length===N&&Array.isArray(st.s.results)&&st.s.results.length===N&&Array.isArray(st.s.names)&&st.s.names.length===N;
-  if(ok){ lastState=st; stateVer=1; console.log('前回の進行状態を復元しました'); }
+  if(ok){ lastState=st; stateVer=1;
+    // 復元フェーズが進行中/結果(countdown/result/prize)なら、Idle再起動で"起きた瞬間に古い場面"を出さないようロビーへ戻す（進行中はサーバが稼働=再起動しないので実害なし）
+    if(lastState.s && ['countdown','result','prize'].includes(lastState.s.phase)){ lastState.s.phase='lobby'; }
+    console.log('前回の進行状態を復元しました'); }
   else console.log('保存状態が現行仕様(N='+N+')と不一致のため破棄して初期化します'); } }catch(e){}
 // 永続化はデバウンス：投票1票ごとにディスクへ書くと高負荷時に詰まるため最大1秒に1回へ束ねる。
 // 運営操作（フェーズ/リセット等）は即時保存、プロセス終了時も必ず書き切る（下部のSIGTERM/SIGINT）。
