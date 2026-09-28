@@ -54,9 +54,9 @@
   #s_reveal{position:absolute; inset:0; z-index:6; display:none; overflow:hidden; background:radial-gradient(120% 90% at 50% 18%,#cdeefb,#9bdcf2 62%,#6fc6e8); cursor:pointer;}
   #s_reveal.on{display:block;}
   #revealCanvas{position:absolute; inset:0; width:1280px; height:720px;}
-  .rev-title{position:absolute; top:33%; left:0; right:0; text-align:center; font-family:var(--jp); font-weight:900; font-style:italic; font-size:74px; letter-spacing:.04em; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff 55%,#7fd0ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 8px 30px rgba(47,228,255,.45)); opacity:0; transform:scale(.9); transition:opacity .4s,transform .4s; pointer-events:none;}
+  .rev-title{position:absolute; top:33%; left:0; right:0; text-align:center; font-family:var(--jp); font-weight:900; font-style:italic; font-size:74px; letter-spacing:.04em; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff 55%,#7fd0ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 2px 3px rgba(0,0,0,.85)) drop-shadow(0 8px 30px rgba(47,228,255,.45)); opacity:0; transform:scale(.9); transition:opacity .4s,transform .4s; pointer-events:none;}
   .rev-title.show{opacity:1; transform:scale(1);}
-  .rev-title .sub{display:block; font-size:20px; font-family:var(--lab); letter-spacing:.32em; font-style:normal; -webkit-text-fill-color:#8fb3c8; margin-top:10px;}
+  .rev-title .sub{display:block; font-size:20px; font-family:var(--lab); letter-spacing:.32em; font-style:normal; -webkit-text-fill-color:#cfe6f4; margin-top:10px; text-shadow:0 2px 8px rgba(0,0,0,.9);}
   .rev-winner{position:absolute; left:0; right:0; top:8%; padding:22px 0 30px; text-align:center; opacity:0; transform:translateY(26px); transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1); pointer-events:none; text-shadow:0 3px 16px rgba(0,0,0,.75); background:radial-gradient(90% 130% at 50% 30%, rgba(3,11,18,.58), rgba(3,11,18,0) 74%);}
   .rev-winner.show{opacity:1; transform:translateY(0);}
   .rev-winner .lbl{font-family:var(--lab); letter-spacing:.34em; font-size:20px; color:#ffe8a0; text-shadow:0 2px 10px rgba(0,0,0,.95),0 1px 2px rgba(0,0,0,.9);}
@@ -66,6 +66,10 @@
   .rev-winner .st b{color:var(--gold); font-size:54px;}
   .rev-winner .champ{display:inline-block; font-family:var(--lab); font-weight:900; letter-spacing:.22em; font-size:16px; color:#3a2600; background:linear-gradient(180deg,#ffe9a8,var(--gold)); padding:5px 16px; border-radius:9px; transform:skewX(-6deg); margin-bottom:12px; box-shadow:0 8px 22px rgba(255,210,74,.45);}
   .rev-winner .nmtxt{display:inline-block; color:transparent; background:linear-gradient(180deg,#fff6d6,var(--gold) 55%,#e89b1c); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 3px 3px rgba(0,0,0,.7)) drop-shadow(0 8px 22px rgba(255,210,74,.45));}
+  /* 判定中〜勝者の間だけ動画をディム（上下は強め＝文字を必ず読ませる／中央は薄め＝艇は見える）。結果発表の文字が背景の明るさで沈むのを防ぐ */
+  #revScrim{position:absolute; inset:0; opacity:0; transition:opacity .45s ease; pointer-events:none;
+    background:linear-gradient(180deg, rgba(2,8,14,.80) 0%, rgba(2,8,14,.40) 26%, rgba(2,8,14,.24) 50%, rgba(2,8,14,.46) 72%, rgba(2,8,14,.82) 100%);}
+  #revScrim.show{opacity:1;}
   .rev-judge{position:absolute; left:0; right:0; top:30%; text-align:center; opacity:0; transform:scale(.92); transition:opacity .4s,transform .4s; pointer-events:none; z-index:8;}
   .rev-judge.show{opacity:1; transform:scale(1);}
   .rev-judge .jt{font-family:var(--jp); font-weight:900; font-style:italic; font-size:88px; letter-spacing:.06em; color:#fff; text-shadow:0 4px 22px rgba(0,0,0,.8); animation:jPulse 1s ease-in-out infinite;}
@@ -243,6 +247,7 @@
 <div id="s_reveal">
   <video id="revVideo" width="1280" height="720" muted playsinline preload="auto" style="position:absolute;inset:0;width:1280px;height:720px;object-fit:cover;display:none;"><source src="vid/reveal.mp4" type="video/mp4"></video>
   <canvas id="revealCanvas" width="1280" height="720"></canvas>
+  <div id="revScrim"></div>
   <div class="rev-title" id="revTitle">結果発表<span class="sub">WHO GOT THE 神スタート ?</span></div>
   <div class="rev-judge" id="revJudge"><div class="jt">判定中…</div><div class="js">0.00秒に 一番近いのは…?</div><div class="jdots"><i></i><i></i><i></i></div></div>
   <div class="rev-winner" id="revWinner"></div>
@@ -303,7 +308,7 @@
   function flashFx(c){ const f=$('#flash'); f.className='flash '+c; setTimeout(()=>f.className='flash',700); }
 
   // ===== 結果発表：助走→スタートを切る演出（周回なし・スタート重視／勝者=0秒に最接近＝上位2名が賞対象）=====
-  function stopReveal(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; if(revHb){clearInterval(revHb);revHb=0;} const r=$('#s_reveal'); if(r)r.classList.remove('on'); ['#revTitle','#revJudge','#revWinner','#revVote'].forEach(id=>{const e=$(id); if(e)e.classList.remove('show');}); const cv=$('#revealCanvas'); if(cv)cv.onclick=null; }
+  function stopReveal(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; if(revHb){clearInterval(revHb);revHb=0;} const r=$('#s_reveal'); if(r)r.classList.remove('on'); ['#revTitle','#revScrim','#revJudge','#revWinner','#revVote'].forEach(id=>{const e=$(id); if(e)e.classList.remove('show');}); const cv=$('#revealCanvas'); if(cv)cv.onclick=null; }
   function drumroll(){ try{ AC(); for(let k=0;k<20;k++){ tone(80+k*3, Math.max(0,k*(0.055-k*0.001)), 0.05,'square',0.09); } }catch(e){} }
   // ===== 結果発表：まず動画(vid/reveal.mp4)を背景再生。勝者/上位2名はHTMLで上に重ねる。動画不可なら従来Canvasへ =====
   function runReveal(s){
@@ -324,7 +329,7 @@
     const JUDGE_MS=3000;   // 通過後にタメる時間（結果を伏せる）
     function heartbeat(){ try{ tone(70,0,0.09,'sine',0.16); tone(92,0.12,0.10,'sine',0.12); }catch(e){} }
     function startJudge(){ if(judging||done)return; judging=true; try{vv.pause();}catch(e){}   // ラインで通過フレームをフリーズ
-      $('#revTitle').classList.remove('show'); $('#revJudge').classList.add('show');
+      $('#revTitle').classList.remove('show'); $('#revScrim').classList.add('show'); $('#revJudge').classList.add('show');
       heartbeat(); revHb=setInterval(heartbeat,780);
       setTimeout(showWinner, JUDGE_MS); }
     function showWinner(){ if(done)return; done=true; judging=false; if(revHb){clearInterval(revHb);revHb=0;} $('#revJudge').classList.remove('show'); flashFx('p'); $('#revTitle').classList.remove('show'); playBGM('result'); try{confetti();}catch(e){}
@@ -339,7 +344,7 @@
       } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">'+(allFoul?'全員フライング':'有効スタートなし')+'</div><div class="st">次のラウンドへ！</div>'; w.classList.add('show'); }
       endAt=performance.now()+HOLD*1000; }
     function endV(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; if(revHb){clearInterval(revHb);revHb=0;} try{vv.pause();}catch(e){} vv.onended=null; vv.onerror=null;
-      $('#s_reveal').classList.remove('on'); $('#revTitle').classList.remove('show'); $('#revJudge').classList.remove('show'); $('#revWinner').classList.remove('show'); $('#revVote').classList.remove('show');
+      $('#s_reveal').classList.remove('on'); $('#revTitle').classList.remove('show'); $('#revScrim').classList.remove('show'); $('#revJudge').classList.remove('show'); $('#revWinner').classList.remove('show'); $('#revVote').classList.remove('show');
       vv.style.display='none'; if(cvc) cvc.style.display=''; show('result'); buildResult(); }
     vv.onended=startJudge;
     vv.onerror=function(){ vv.style.display='none'; if(cvc) cvc.style.display=''; vv.onended=null; vv.onerror=null; revealing=false; runRevealCanvas(s); };
@@ -430,7 +435,7 @@
         const fs=Math.max(0,T-finishAt);
         for(let n=0;n<24;n++){ const life=((fs*1.1)+(n*0.12))%1.7, ang=n*2.399, rad=20+life*150; const px=x+Math.cos(ang)*rad*0.7, py=y+Math.sin(ang)*rad-life*40; ctx.globalAlpha=Math.max(0,1-life/1.7); ctx.fillStyle=n%2?'#fff2b0':'#ffd24a'; ctx.beginPath(); ctx.arc(px,py,2.6,0,7); ctx.fill(); }   // 金の粒子
         ctx.globalAlpha=1; } }
-    function onFinish(){ finished=true; finishAt=(performance.now()-t0)/1000; flashFx('p'); $('#revTitle').classList.remove('show');
+    function onFinish(){ finished=true; finishAt=(performance.now()-t0)/1000; flashFx('p'); $('#revTitle').classList.remove('show'); $('#revScrim').classList.add('show');
       playBGM('result'); try{ confetti(); }catch(e){}   // 結果用mp3(bgm/common/result.mp3)を置けば本物に差替
       const w=$('#revWinner');
       if(validWin){ w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
