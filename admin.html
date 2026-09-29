@@ -55,7 +55,7 @@
   document.body.insertAdjacentHTML('afterbegin', sceneHTML());
   const bus=makeBus('admin');
   const MIRROR=/[?&]mirror=1/.test(location.search);   // ウォール確認用：操作せずstateを追従表示
-  const PHASES=[['lobby','エントリー'],['countdown','スタート勝負'],['result','結果'],['prize','商品プレゼント']];
+  const PHASES=[['lobby','エントリー'],['rules','ルール説明'],['countdown','スタート勝負'],['result','結果'],['prize','商品プレゼント']];
   let s={phase:'lobby', round:1, venue:'naruto', names:new Array(N).fill(null), joined:new Array(N).fill(false), results:new Array(N).fill(null)};
   const VENUES=[['naruto','1部 鳴門'],['kojima','2部 児島'],['marugame','3部 丸亀']];
 
@@ -73,7 +73,7 @@
   function render(){
     document.getElementById('phasebar').innerHTML=PHASES.map(p=>`<span class="ph ${s.phase===p[0]?'on':''}">${p[1]}</span>`).join('');
     $('#rno').textContent='R'+s.round;
-    const titleMap={lobby:'エントリー受付中（挑戦者がスマホで参加・全員参加型）',countdown:'スタート勝負！（挑戦者がPUSH）',result:'結果発表（0秒に近い順）',prize:'商品プレゼント（上位2名）'};
+    const titleMap={lobby:'エントリー受付中（挑戦者がスマホで参加・全員参加型）',rules:'ルール説明を投影＆スマホに表示中',countdown:'スタート勝負！（挑戦者がPUSH）',result:'結果発表（0秒に近い順）',prize:'商品プレゼント（上位2名）'};
     $('#phaseTitle').textContent=titleMap[s.phase]||'';
     const showST=(s.phase==='result'||s.phase==='prize');
     const order=ranking(s.results), rankOf={}; order.forEach((idx,r)=>rankOf[idx]=r);
@@ -91,7 +91,8 @@
     $('#joinCnt').textContent=joinedCount(); $('#joinCnt2').textContent=joinedCount(); $('#resCnt').textContent=resCount();
     // controls
     let btns='';
-    if(s.phase==='lobby') btns=`<div style="width:100%;text-align:center;font-family:var(--lab);font-size:12px;letter-spacing:.1em;color:var(--muted);margin-bottom:2px">会場BGM（冒頭で選択）</div>`+VENUES.map(v=>`<button class="btn ghost" data-a="venue:${v[0]}" style="min-width:130px${s.venue===v[0]?';outline:2px solid var(--gold);color:var(--gold)':''}">${v[1]}${s.venue===v[0]?' ●':''}</button>`).join('')+`<div style="width:100%;height:2px"></div><button class="btn orange" data-a="go">スタート勝負へ（発走） ▶${joinedCount()<1?' <span style="font-size:12px;font-weight:600;opacity:.85">（挑戦者0人でも進めます）</span>':''}</button>`;
+    if(s.phase==='lobby') btns=`<div style="width:100%;text-align:center;font-family:var(--lab);font-size:12px;letter-spacing:.1em;color:var(--muted);margin-bottom:2px">会場BGM（冒頭で選択）</div>`+VENUES.map(v=>`<button class="btn ghost" data-a="venue:${v[0]}" style="min-width:130px${s.venue===v[0]?';outline:2px solid var(--gold);color:var(--gold)':''}">${v[1]}${s.venue===v[0]?' ●':''}</button>`).join('')+`<div style="width:100%;height:2px"></div><button class="btn ghost" data-a="phase:rules" style="min-width:200px">📖 ルール説明を表示</button><button class="btn orange" data-a="go">スタート勝負へ（発走） ▶${joinedCount()<1?' <span style="font-size:12px;font-weight:600;opacity:.85">（挑戦者0人でも進めます）</span>':''}</button>`;
+    else if(s.phase==='rules') btns=`<button class="btn ghost" data-a="phase:lobby">◀ エントリーに戻る</button><button class="btn orange" data-a="go">スタート勝負へ（発走） ▶</button>`;
     else if(s.phase==='countdown') btns=`<button class="btn ghost" data-a="phase:lobby">◀ エントリーに戻る</button><button class="btn orange" data-a="result">結果発表へ ▶</button>`;
     else if(s.phase==='result') btns=`<button class="btn ghost" data-a="phase:countdown">◀ スタート勝負に戻る</button><button class="btn orange" data-a="prize">商品プレゼント発表へ ▶</button>`;
     else if(s.phase==='prize') btns=`<button class="btn ghost" data-a="phase:result">◀ 結果に戻る</button><button class="btn" data-a="next">次のラウンド（同メンバー） ▶</button><button class="btn ghost" data-a="reset">最初から</button>`;

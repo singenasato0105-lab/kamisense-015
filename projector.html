@@ -158,9 +158,17 @@
   @media (prefers-reduced-motion:reduce){ .lpchar{animation:none !important;} }
   /* LP時のロビー：中身は濃紺のフェス風カードに載せて可読性キープ */
   #tv.lp .brand{display:none;}   /* LP時は小さいLIVE行を隠し、祭りリボンを唯一のヘッダに */
-  #tv.lp #s_lobby, #tv.lp #s_prize{position:relative; z-index:4; background:linear-gradient(180deg,rgba(6,28,44,.80),rgba(5,22,36,.86));
+  #tv.lp #s_lobby, #tv.lp #s_prize, #tv.lp #s_rules{position:relative; z-index:4; background:linear-gradient(180deg,rgba(6,28,44,.80),rgba(5,22,36,.86));
     border-radius:30px; padding:24px 34px 30px; margin:0 auto; max-width:820px;
     box-shadow:0 24px 70px rgba(0,45,75,.4), inset 0 0 0 2px rgba(255,255,255,.28), inset 0 0 0 6px rgba(70,180,225,.18);}
+  #s_rules{text-align:center;}
+  .rulewrap{display:flex; flex-direction:column; gap:1.4cqh; max-width:760px; margin:2.6cqh auto 0; text-align:left;}
+  .rulewrap .rrow{display:flex; align-items:center; gap:20px; background:rgba(255,255,255,.05); border:1px solid rgba(120,200,240,.22); border-radius:16px; padding:14px 22px;}
+  .rulewrap .rrow.win{background:linear-gradient(90deg,rgba(255,210,74,.16),rgba(255,210,74,.04)); border-color:rgba(255,210,74,.5);}
+  .rulewrap .rn{flex:none; width:clamp(40px,4.6cqw,56px); height:clamp(40px,4.6cqw,56px); border-radius:12px; display:grid; place-items:center; font-family:var(--disp); font-size:clamp(22px,3cqw,34px); background:linear-gradient(155deg,#2fe4ff,#1478c8); color:#04202f; transform:skewX(-8deg);}
+  .rulewrap .rrow.win .rn{background:none; transform:none; font-size:clamp(28px,3.6cqw,40px);}
+  .rulewrap .rt{font-family:var(--jp); font-weight:800; font-size:clamp(18px,2.5cqw,28px); color:#eaf6ff; line-height:1.35;}
+  .rulewrap .rt b{color:#7fe6ff;} .rulewrap .rrow.win .rt b{color:var(--gold);}
   #tv.lp #s_prize{max-width:760px;}
   #tv.lp #s_lobby .title{font-size:clamp(26px,6cqw,46px);}
   #tv.lp #s_lobby .qrcta{margin-top:1.4cqh;}
@@ -224,6 +232,18 @@
       <div class="qrcard"><div class="qimg" id="qrPlayer"></div><div class="qlbl">挑戦者エントリーはこちら</div><div class="qsub" id="uPlayer">/player</div></div>
     </div>
   </section>
+  <!-- RULES -->
+  <section class="screen" id="s_rules">
+    <div class="kicker">遊び方 ／ HOW TO PLAY</div>
+    <div class="title" style="font-size:clamp(28px,5cqw,48px)">スタートタイミングの<span class="accent">神</span>を決めろ</div>
+    <div class="rulewrap">
+      <div class="rrow"><div class="rn">1</div><div class="rt">大時計が <b>0</b> を指す<b>その瞬間</b>に、スマホの<b>PUSH</b></div></div>
+      <div class="rrow"><div class="rn">2</div><div class="rt"><b>0秒に近いほど神スタート</b>。近い順に上位</div></div>
+      <div class="rrow"><div class="rn">3</div><div class="rt"><b>フライング（0秒より前）でも</b>、0秒への近さで順位に入る</div></div>
+      <div class="rrow win"><div class="rn">🎁</div><div class="rt">0秒に一番近い <b>上位2名に商品プレゼント</b></div></div>
+    </div>
+    <div class="qrcta" style="margin-top:1.2cqh">スマホでエントリー → 司会の合図でスタート！</div>
+  </section>
   <!-- COUNTDOWN -->
   <section class="screen" id="s_count" style="text-align:center">
     <div class="qtext">スタート勝負！　大時計が消えたら感覚でPUSH</div>
@@ -271,7 +291,7 @@
   function fitTV(){ const s=Math.min(window.innerWidth/1280, window.innerHeight/720); TV.style.transform='translate(-50%,-50%) scale('+s+')'; }
   fitTV(); window.addEventListener('resize', fitTV); window.addEventListener('orientationchange', fitTV);
   $('#stage').innerHTML=clockSVG()+'<div class="cdnum en" id="cdnum">10</div><div class="blindmsg" id="blind"><div class="big">感覚勝負！</div><div class="small">AIM 0.15</div></div>';
-  const scr={lobby:$('#s_lobby'),count:$('#s_count'),result:$('#s_result'),prize:$('#s_prize')};
+  const scr={lobby:$('#s_lobby'),rules:$('#s_rules'),count:$('#s_count'),result:$('#s_result'),prize:$('#s_prize')};
   function show(n){ for(const k in scr) scr[k].classList.toggle('on',k===n); }
   const base=appUrl(); $('#uPlayer').textContent=base+'player';
   function mkQR(id,url){ try{ const el=document.getElementById(id); if(el && window.QRCode){ el.innerHTML=''; new QRCode(el,{text:url,width:300,height:300,colorDark:'#0e2b42',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); } }catch(e){} }
@@ -500,7 +520,7 @@
   function onState(s){
     BGM.setVenue(s.venue||'naruto');
     // LP寄せ背景＋会場キャラは ロビー・商品プレゼント で表示（発走/大時計/結果演出は専用背景のまま）
-    const lp=(s.phase==='lobby'||s.phase==='prize');
+    const lp=(s.phase==='lobby'||s.phase==='prize'||s.phase==='rules');
     TV.classList.toggle('lp', lp);
     ['#mascotL','#mascotC','#mascotR'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('on', lp); });
     if(s.phase!=='result') stopReveal();
@@ -508,12 +528,13 @@
     if(s.phase!=='prize') prevPrize=false;
     $('#rnoR').textContent='R'+s.round;
     if(s.phase==='lobby'){ show('lobby'); buildLobby(); }
+    else if(s.phase==='rules'){ show('rules'); }
     else if(s.phase==='countdown'){ show('count'); if(!running && prevPhase!=='countdown') { /* 待機表示。go信号で開始 */ }
       const jc=s.joined.filter(Boolean).length, rc=s.results.filter((r,i)=>s.joined[i]&&r!=null).length; $('#doneCount').textContent=rc+' / '+jc+' 完了'; }
     else if(s.phase==='result'){ if(!revealing){ if(prevPhase!=='result' && prevPhase!==''){ runReveal(s); } else { show('result'); buildResult(); } } }   // 初回ロード(prevPhase='')で既にresultなら古い演出を再生せず静止表示
     else if(s.phase==='prize'){ stopReveal(); if(prevPhase==='') prevPrize=true; show('prize'); buildPrize(); }   // 初回ロードのprizeはファンファーレ/紙吹雪を再発火させない
     if(s.phase!==prevPhase){
-      if(s.phase==='lobby'){ if(prevPhase!=='lobby') playBGM('parade',{loop:true}); }
+      if(s.phase==='lobby'||s.phase==='rules'){ if(prevPhase!=='lobby'&&prevPhase!=='rules') playBGM('parade',{loop:true}); }
       else if(s.phase==='countdown'){ /* 発走ファンファーレはgo信号で鳴らす（→間→大時計） */ }
     }
     prevPhase=s.phase;

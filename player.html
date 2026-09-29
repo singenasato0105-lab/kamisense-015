@@ -19,6 +19,27 @@
   .big-badge span{transform:skewX(8deg); color:var(--bt);}
   .myst{font-family:var(--disp); font-size:clamp(60px,20vw,120px); line-height:1; color:#fff;}
   .myst .s{font-family:var(--jp); font-style:italic; font-size:.26em; color:var(--muted);}
+  /* ルール（スマホ） */
+  .rules2{display:flex; flex-direction:column; gap:10px; margin-top:18px; text-align:left;}
+  .rules2 .r2{display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:13px; padding:11px 13px;}
+  .rules2 .r2.win{background:linear-gradient(90deg,rgba(255,210,74,.16),rgba(255,210,74,.03)); border-color:rgba(255,210,74,.5);}
+  .rules2 .rn{flex:none; width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-family:var(--disp); font-size:19px; background:linear-gradient(155deg,#2fe4ff,#1478c8); color:#04202f;}
+  .rules2 .r2.win .rn{background:none; font-size:22px;}
+  .rules2 .rt{font-weight:800; font-size:15px; line-height:1.35; color:#eaf6ff;}
+  .rules2 .rt b{color:#7fe6ff;} .rules2 .r2.win .rt b{color:var(--gold);}
+  /* 結果ランキング（スマホ） */
+  .ranklist{display:flex; flex-direction:column; gap:7px; margin-top:14px;}
+  .rrow2{display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:12px; padding:9px 12px;}
+  .rrow2.win{background:linear-gradient(90deg,rgba(255,210,74,.14),rgba(255,210,74,.02)); border-color:rgba(255,210,74,.55);}
+  .rrow2.me{outline:2px solid var(--gold); box-shadow:0 0 0 3px rgba(255,210,74,.18);}
+  .rrow2 .rk{flex:none; width:44px; font-family:var(--disp); font-size:17px; color:#bfe0f2;}
+  .rrow2.win .rk{color:var(--gold);}
+  .rrow2 .kw{flex:none; width:30px; height:30px; border-radius:8px; display:grid; place-items:center; font-family:var(--disp); font-size:16px; transform:skewX(-8deg); background:linear-gradient(155deg,rgba(255,255,255,.6),rgba(255,255,255,0) 46%),var(--bc);}
+  .rrow2 .kw span{transform:skewX(8deg); color:var(--bt);}
+  .rrow2 .rnm{flex:1; font-weight:800; font-size:15px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rrow2 .rst{flex:none; font-family:var(--disp); font-size:17px; color:#fff;}
+  .rrow2 .rst.foul{color:#ff8a7a;} .rrow2 .rst.foul b{font-size:.6em; margin-left:4px; color:#3a0f0a; background:#ff6a4d; padding:1px 5px; border-radius:5px; vertical-align:middle;}
+  #myLine{margin-top:6px; font-weight:800; font-size:15px; color:var(--gold);}
 </style>
 </head>
 <body>
@@ -55,13 +76,33 @@
     <div class="myst en" id="myST">0.00<span class="s">秒</span></div>
     <p class="lead" id="doneMsg">結果発表をお待ちください。</p>
   </section>
+  <!-- RULES -->
+  <section class="screen" id="s_rules">
+    <div class="kicker">遊び方 ／ How to play</div>
+    <div class="title" style="font-size:clamp(24px,6.4vw,34px)">スタートタイミングの<span style="color:var(--gold)">神</span>を決めろ</div>
+    <div class="rules2">
+      <div class="r2"><span class="rn">1</span><span class="rt">大時計が <b>0</b> を指す<b>その瞬間</b>に <b>PUSH</b></span></div>
+      <div class="r2"><span class="rn">2</span><span class="rt"><b>0秒に近いほど神スタート</b>（近い順に上位）</span></div>
+      <div class="r2"><span class="rn">3</span><span class="rt"><b>フライング</b>（0秒より前）でも 0秒への近さで順位に入る</span></div>
+      <div class="r2 win"><span class="rn">🎁</span><span class="rt"><b>上位2名に商品プレゼント</b></span></div>
+    </div>
+    <p class="lead" style="margin-top:14px">まず号艇をえらんでエントリー！<br>司会の合図でスタートします。</p>
+  </section>
+  <!-- RESULT RANKING -->
+  <section class="screen" id="s_result">
+    <div class="kicker">Result ／ 結果発表</div>
+    <div class="title" style="font-size:clamp(22px,5.6vw,32px)">0秒にいちばん近い順</div>
+    <div id="myLine"></div>
+    <div class="ranklist" id="rankList"></div>
+    <p class="lead" style="margin-top:10px;font-size:13px">上位2名に商品プレゼント 🎁</p>
+  </section>
 </div>
 <div class="conn" id="conn">● 接続中</div>
 <script src="shared.js"></script>
 <script>
 (()=>{ "use strict";
   const $=s=>document.querySelector(s);
-  const scr={join:$('#s_join'),wait:$('#s_wait'),race:$('#s_race'),done:$('#s_done')};
+  const scr={join:$('#s_join'),wait:$('#s_wait'),race:$('#s_race'),done:$('#s_done'),rules:$('#s_rules'),result:$('#s_result')};
   function show(n){ for(const k in scr) scr[k].classList.toggle('on',k===n); window.scrollTo(0,0); }
   document.body.insertAdjacentHTML('afterbegin', sceneHTML());
   $('#stage').innerHTML=clockSVG()+'<div class="cdnum en" id="cdnum">10</div><div class="blindmsg" id="blind"><div class="big">感覚で押せ！</div><div class="small">AIM 0.15</div></div>';
@@ -114,14 +155,26 @@
     if(m.type==='state'){ cur=m.s; onState(m.s); }
     else if(m.type==='go'){ if(myBoat!=null && cur && cur.joined[myBoat] && !done){ phase='countdown'; goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); setTimeout(()=>{ if(phase==='countdown'&&!done)startRace(); }, Math.max(0,delay)); } }
   });
+  function buildRank(s){
+    const order=ranking(s.results); const rows=order.filter(i=> s.joined[i] && s.results[i]!=null);
+    let h=''; rows.forEach((i,r)=>{ const st=s.results[i], foul=st<0, nm=(s.names&&s.names[i])||((i+1)+'号艇');
+      const stc= foul? '<span class="rst foul">'+st.toFixed(2)+'<b>F</b></span>' : '<span class="rst">'+st.toFixed(2)+'</span>';
+      h+='<div class="rrow2 '+(r<2?'win':'')+' '+(i===myBoat?'me':'')+'" style="--bc:'+COL[i].b+';--bt:'+COL[i].t+'"><span class="rk">'+(r+1)+'着</span><span class="kw"><span>'+(i+1)+'</span></span><span class="rnm">'+esc(nm)+'</span>'+stc+'</div>'; });
+    $('#rankList').innerHTML= h || '<p class="lead" style="text-align:center">まだ結果がありません</p>';
+    let ml=''; if(myBoat!=null && s.results[myBoat]!=null){ const mr=rows.indexOf(myBoat); if(mr>=0) ml='あなたは '+(mr+1)+'着'+(mr<2?'・入賞！🎁 スタッフにお声がけください':''); }
+    $('#myLine').innerHTML=ml;
+  }
   function onState(s){
     const prev=phase; phase=s.phase;
     if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
+    else if(s.phase==='rules'){ show('rules'); }   // 投影と同じルール説明をスマホにも
     else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
-    else if(s.phase==='result'||s.phase==='prize'){ if(myBoat!=null){ if(done){ show('done'); const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; }
-        const order=ranking(s.results); const myRank=order.indexOf(myBoat); const inPrize=(myRank>=0 && myRank<2 && s.results[myBoat]!=null);   // 上位2名が商品プレゼント対象（フライングも0秒への近さでランク＝賞品は必ず配る）
-        $('#doneMsg').innerHTML= inPrize? ('🎁 '+(myRank+1)+'着・入賞！おめでとうございます！<br>スタッフにお声がけください。') : '結果は大画面をチェック！'; }
-      else { show('wait'); $('#waitMsg').textContent='結果発表中です。大画面をご覧ください。'; } } }
+    else if(s.phase==='result'||s.phase==='prize'){   // 投影と同じ結果ランキングをスマホにも表示
+      if(myBoat!=null && done && prev!=='result' && prev!=='prize'){   // 押した直後の自分の結果を一瞬見せてからランキングへ
+        const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; }
+        show('done'); buildRank(s); setTimeout(()=>{ if(phase==='result'||phase==='prize') show('result'); }, 1800);
+      } else { buildRank(s); show('result'); }
+    }
   }
 })();
 </script>
