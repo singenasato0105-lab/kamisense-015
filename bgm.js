@@ -9,9 +9,9 @@
   const VENUES=['naruto','kojima','marugame'];
   function srcFor(cue){ return cue==='parade' ? ('bgm/'+curVenue+'/parade.mp3') : ('bgm/common/'+cue+'.mp3'); }
 
-  // 各mp3の実測平均音量(ffmpeg volumedetect)に基づくレベル正規化。最も静かなnaruto paradeを1.0基準に、大きい曲を絞って
-  // cue切替時の"音量が上下"を解消。値=10^((-18.3 - mean_dB)/20)。
-  const VOL={ 'naruto/parade.mp3':1.00, 'kojima/parade.mp3':0.95, 'marugame/parade.mp3':0.68, 'common/race.mp3':0.67, 'common/fanfare.mp3':0.85 };
+  // BGMは事前にdynaudnormでトラック内の音量ムラを均し(弱いイントロは除去)、ここでcue間のレベルを揃える。
+  // 値=10^((-16 - mean_dB)/20)。mean: naruto-16.0/kojima-15.7/marugame-14.3/race-11.3/fanfare-16.9(未処理)。
+  const VOL={ 'naruto/parade.mp3':1.00, 'kojima/parade.mp3':0.97, 'marugame/parade.mp3':0.82, 'common/race.mp3':0.58, 'common/fanfare.mp3':1.00 };
   function volFor(src){ for(const k in VOL){ if(src.indexOf(k)>=0) return VOL[k]; } return 0.9; }
   const XFADE=280;   // cue切替のクロスフェード(ms)。ハードカットの"途切れ"を無くす
   function fadeTo(a,target,ms,done){ if(!a) return; try{ if(a._fr) cancelAnimationFrame(a._fr); }catch(e){} try{ if(a._ft) clearTimeout(a._ft); }catch(e){}
