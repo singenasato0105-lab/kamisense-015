@@ -197,6 +197,8 @@
   #tv #s_result .brow{padding:5px 15px;}
   #tv #s_result .kw{width:38px; height:38px; font-size:20px;}
   #tv #s_result .stc{font-size:22px;}
+  .stc.foul{color:#ff8a7a;} .stc.foul b{font-size:.62em; margin-left:4px; color:#3a0f0a; background:#ff6a4d; padding:1px 5px; border-radius:5px; vertical-align:middle; font-style:normal;}
+  .rev-winner .st .foulF{-webkit-text-fill-color:#3a0f0a; color:#3a0f0a; background:#ff6a4d; font-size:.5em; font-weight:900; padding:2px 8px; border-radius:7px; vertical-align:middle; margin-left:8px;}
   #tv #s_result .rankbadge{top:3px; left:36px;}
   /* 2/3着ストリップ：長い名前2つでも横にはみ出さず折り返す */
   #tv .rev-vote .hit{font-size:clamp(20px,2.9cqw,32px); padding:0 40px; line-height:1.4;}
@@ -289,20 +291,20 @@
     $('#lobbyBoats').innerHTML=h; }
   const MEDAL=['🥇','🥈','🥉'];
   function buildResult(){ const s=cur, order=ranking(s.results); const nm=names();
-    const validOrder=order.filter(i=> s.joined[i] && s.results[i]!=null && s.results[i]>=0); const vRank={}; validOrder.forEach((i,r)=>vRank[i]=r);
+    const validOrder=order.filter(i=> s.joined[i] && s.results[i]!=null); const vRank={}; validOrder.forEach((i,r)=>vRank[i]=r);   // 押した人は全員ランク対象（フライングも0秒への近さで順位付け）
     let h='';
     order.forEach(i=>{ if(!s.joined[i] && s.results[i]==null) return;   // 未参加枠は結果に出さない
-      const st=s.results[i]; const stc= st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>');
-      const vr=vRank[i]; const rk= vr!=null ? (vr+1)+'着' : (st!=null&&st<0?'F':'—');
+      const st=s.results[i]; const stc= st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">'+st.toFixed(2)+'<b>F</b></span>':'<span class="stc">'+st.toFixed(2)+'</span>');   // フライングも値を表示（近さで順位が付くため）＋Fタグ
+      const vr=vRank[i]; const rk= vr!=null ? (vr+1)+'着' : '—';
       const medal= (vr!=null&&vr<2) ? MEDAL[vr] : '';
       h+=`<div class="brow ${(vr!=null&&vr<2)?'win':''}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div><span class="rankbadge"><span>${rk}</span></span><div class="binfo"><div class="nm"><span class="txt">${esc(nm[i]||(i+1+'号艇'))}</span></div></div>${stc}<div style="font-size:34px;line-height:1;text-align:center;color:initial;-webkit-text-fill-color:initial;background:none">${medal}</div></div>`; });
     $('#resultRows').innerHTML=h; }
   const RK3=['1着','2着','3着'];
   function buildPrize(){ const s=cur, order=ranking(s.results), nm=names();
-    const top=order.filter(i=> s.joined[i] && s.results[i]!=null && s.results[i]>=0).slice(0,2);
+    const top=order.filter(i=> s.joined[i] && s.results[i]!=null).slice(0,2);   // フライング含め0秒に近い上位2名（賞品は必ず配る）
     const pod=$('#podium');
     if(!top.length){ pod.innerHTML=''; $('#payNote').innerHTML='有効なスタートなし…次のラウンドへ！'; return; }
-    pod.innerHTML=top.map((i,r)=>`<div class="pod ${r===0?'r1':''}"><div class="medal">${MEDAL[r]}</div><div class="rk">${RK3[r]}</div><div class="kw" style="--bc:${COL[i].b};--bt:${COL[i].t}"><span>${i+1}</span></div><div class="pnm">${esc(nm[i]||(i+1+'号艇'))}</div><div class="pst">${s.results[i].toFixed(2)}<small>秒</small></div></div>`).join('');
+    pod.innerHTML=top.map((i,r)=>`<div class="pod ${r===0?'r1':''}"><div class="medal">${MEDAL[r]}</div><div class="rk">${RK3[r]}</div><div class="kw" style="--bc:${COL[i].b};--bt:${COL[i].t}"><span>${i+1}</span></div><div class="pnm">${esc(nm[i]||(i+1+'号艇'))}</div><div class="pst">${s.results[i].toFixed(2)}<small>秒${s.results[i]<0?' <b style="color:#ff6a4d">F</b>':''}</small></div></div>`).join('');
     $('#payNote').innerHTML=`0秒にいちばん近い <b>上位${top.length}名</b> に商品プレゼント！ おめでとうございます 🎉`;
     if(!prevPrize){ flashFx('p'); confetti(); fanfare(); } prevPrize=true; }
   function flashFx(c){ const f=$('#flash'); f.className='flash '+c; setTimeout(()=>f.className='flash',700); }
@@ -316,10 +318,9 @@
     if(!(vv && vv.canPlayType && vv.canPlayType('video/mp4'))){ runRevealCanvas(s); return; }
     revealing=true;
     const nm=names(), order=ranking(s.results);
-    const validOrder=order.filter(i=> (s.joined[i]||s.results[i]!=null) && s.results[i]!=null && s.results[i]>=0);
+    const validOrder=order.filter(i=> (s.joined[i]||s.results[i]!=null) && s.results[i]!=null);   // 押した人は全員対象（フライング含め0秒への近さで順位）
     const win=validOrder.length?validOrder[0]:-1, validWin=(win>=0), top2=validOrder.slice(0,2);
     const lanes=[...Array(N).keys()].filter(i=> s.joined[i]||s.results[i]!=null);
-    const allFoul=lanes.length>0 && lanes.every(i=> s.results[i]!=null && s.results[i]<0);
     const HOLD=5;
     $('#revWinner').classList.remove('show'); $('#revWinner').innerHTML=''; $('#revVote').classList.remove('show'); $('#revVote').innerHTML='';
     if(cvc) cvc.style.display='none';
@@ -334,14 +335,14 @@
       setTimeout(showWinner, JUDGE_MS); }
     function showWinner(){ if(done)return; done=true; judging=false; if(revHb){clearInterval(revHb);revHb=0;} $('#revJudge').classList.remove('show'); flashFx('p'); $('#revTitle').classList.remove('show'); playBGM('result'); try{confetti();}catch(e){}
       const w=$('#revWinner');
-      if(validWin){ w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
-        w.innerHTML='<div class="champ">🏆 CHAMPION ／ 1着</div><div class="lbl">0秒に最接近・神スタート</div><div class="nm"><span class="kwbig" style="--bc:'+COL[win].b+';--bt:'+COL[win].t+'">'+(win+1)+'</span><span class="nmtxt">'+esc(nm[win]||(win+1+'号艇'))+'</span></div><div class="st">ST <b>'+s.results[win].toFixed(2)+'</b> 秒</div>';
+      if(validWin){ const wf=(s.results[win]<0); w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
+        w.innerHTML='<div class="champ">🏆 CHAMPION ／ 1着</div><div class="lbl">'+(wf?'0秒に最接近（フライング）':'0秒に最接近・神スタート')+'</div><div class="nm"><span class="kwbig" style="--bc:'+COL[win].b+';--bt:'+COL[win].t+'">'+(win+1)+'</span><span class="nmtxt">'+esc(nm[win]||(win+1+'号艇'))+'</span></div><div class="st">ST <b>'+s.results[win].toFixed(2)+'</b> 秒'+(wf?' <span class="foulF">F</span>':'')+'</div>';
         w.classList.add('show');
         setTimeout(()=>{ if(!revealing)return; const rest=top2.slice(1); const v=$('#revVote');
-          if(rest.length){ v.innerHTML='<div class="hit">'+rest.map((i,k)=>'🎖 '+(k+2)+'着 <b>'+esc(nm[i]||(i+1+'号艇'))+'</b>（'+s.results[i].toFixed(2)+'秒）').join('　／　')+'</div><div class="sub2">上位2名に 商品プレゼント</div>'; }
+          if(rest.length){ v.innerHTML='<div class="hit">'+rest.map((i,k)=>'🎖 '+(k+2)+'着 <b>'+esc(nm[i]||(i+1+'号艇'))+'</b>（'+s.results[i].toFixed(2)+'秒'+(s.results[i]<0?' F':'')+'）').join('　／　')+'</div><div class="sub2">上位2名に 商品プレゼント</div>'; }
           else v.innerHTML='<div class="hit">🎁 上位2名に 商品プレゼント！</div>';
           v.classList.add('show'); },1200);
-      } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">'+(allFoul?'全員フライング':'有効スタートなし')+'</div><div class="st">次のラウンドへ！</div>'; w.classList.add('show'); }
+      } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">有効スタートなし</div><div class="st">次のラウンドへ！</div>'; w.classList.add('show'); }
       endAt=performance.now()+HOLD*1000; }
     function endV(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; if(revHb){clearInterval(revHb);revHb=0;} try{vv.pause();}catch(e){} vv.onended=null; vv.onerror=null;
       $('#s_reveal').classList.remove('on'); $('#revTitle').classList.remove('show'); $('#revScrim').classList.remove('show'); $('#revJudge').classList.remove('show'); $('#revWinner').classList.remove('show'); $('#revVote').classList.remove('show');
@@ -366,10 +367,9 @@
     const nm=names(), order=ranking(s.results);
     const lanes=[]; for(let i=0;i<N;i++){ if(s.joined[i]||s.results[i]!=null) lanes.push(i); } if(!lanes.length) for(let i=0;i<N;i++)lanes.push(i);
     const rowOf={}; lanes.forEach((i,r)=>rowOf[i]=r);
-    const validOrder=order.filter(i=> rowOf[i]!=null && s.results[i]!=null && s.results[i]>=0);
+    const validOrder=order.filter(i=> rowOf[i]!=null && s.results[i]!=null);   // フライング含め0秒に近い順で全員ランク
     const win=validOrder.length?validOrder[0]:-1, validWin=(win>=0);
     const top2=validOrder.slice(0,2);
-    const allFoul=lanes.length>0 && lanes.every(i=> s.results[i]!=null && s.results[i]<0);
     const foul=i=>(s.results[i]!=null&&s.results[i]<0);
     // ===== 横型ストレート：左から助走してスタートライン(lineX=大時計0秒)を切る。周回はしない =====
     const top=104, bot=676, laneH=(bot-top)/lanes.length;
@@ -438,14 +438,14 @@
     function onFinish(){ finished=true; finishAt=(performance.now()-t0)/1000; flashFx('p'); $('#revTitle').classList.remove('show'); $('#revScrim').classList.add('show');
       playBGM('result'); try{ confetti(); }catch(e){}   // 結果用mp3(bgm/common/result.mp3)を置けば本物に差替
       const w=$('#revWinner');
-      if(validWin){ w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
-        w.innerHTML='<div class="champ">🏆 CHAMPION ／ 1着</div><div class="lbl">0秒に最接近・神スタート</div><div class="nm"><span class="kwbig" style="--bc:'+COL[win].b+';--bt:'+COL[win].t+'">'+(win+1)+'</span><span class="nmtxt">'+esc(nm[win]||(win+1+'号艇'))+'</span></div><div class="st">ST <b>'+s.results[win].toFixed(2)+'</b> 秒</div>';
+      if(validWin){ const wf=(s.results[win]<0); w.style.setProperty('--bc',COL[win].b); w.style.setProperty('--bt',COL[win].t);
+        w.innerHTML='<div class="champ">🏆 CHAMPION ／ 1着</div><div class="lbl">'+(wf?'0秒に最接近（フライング）':'0秒に最接近・神スタート')+'</div><div class="nm"><span class="kwbig" style="--bc:'+COL[win].b+';--bt:'+COL[win].t+'">'+(win+1)+'</span><span class="nmtxt">'+esc(nm[win]||(win+1+'号艇'))+'</span></div><div class="st">ST <b>'+s.results[win].toFixed(2)+'</b> 秒'+(wf?' <span class="foulF">F</span>':'')+'</div>';
         w.classList.add('show');
         setTimeout(()=>{ if(!revealing)return; const rest=top2.slice(1); const v=$('#revVote');
-          if(rest.length){ v.innerHTML='<div class="hit">'+rest.map((i,k)=>'🎖 '+(k+2)+'着 <b>'+esc(nm[i]||(i+1+'号艇'))+'</b>（'+s.results[i].toFixed(2)+'秒）').join('　／　')+'</div><div class="sub2">上位2名に 商品プレゼント</div>'; }
+          if(rest.length){ v.innerHTML='<div class="hit">'+rest.map((i,k)=>'🎖 '+(k+2)+'着 <b>'+esc(nm[i]||(i+1+'号艇'))+'</b>（'+s.results[i].toFixed(2)+'秒'+(s.results[i]<0?' F':'')+'）').join('　／　')+'</div><div class="sub2">上位2名に 商品プレゼント</div>'; }
           else v.innerHTML='<div class="hit">🎁 上位2名に 商品プレゼント！</div>';
           v.classList.add('show'); },1400);
-      } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">'+(allFoul?'全員フライング':'有効スタートなし')+'</div><div class="st">次のラウンドへ！</div>'; w.classList.add('show'); } }
+      } else { w.innerHTML='<div class="lbl">RESULT</div><div class="nm" style="font-size:54px">有効スタートなし</div><div class="st">次のラウンドへ！</div>'; w.classList.add('show'); } }
     function endReveal(){ revealing=false; if(revRaf)cancelAnimationFrame(revRaf); revRaf=0; cv.onclick=null;
       $('#s_reveal').classList.remove('on'); $('#revTitle').classList.remove('show'); $('#revWinner').classList.remove('show'); $('#revVote').classList.remove('show');
       show('result'); buildResult(); }

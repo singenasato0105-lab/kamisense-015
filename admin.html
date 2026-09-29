@@ -81,8 +81,8 @@
     let h='';
     for(let i=0;i<N;i++){ const nm=s.names[i]||(s.joined[i]?(i+1+'号艇'):'—（未参加）');
       const st=s.results[i];
-      const c3= showST ? (st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">F</span>':'<span class="stc">'+st.toFixed(2)+'</span>')) : '<span class="stc pending">—</span>';
-      const validRank=(showST&&s.joined[i]&&st!=null&&st>=0&&rankOf[i]!=null)?rankOf[i]:null;
+      const c3= showST ? (st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">'+st.toFixed(2)+' F</span>':'<span class="stc">'+st.toFixed(2)+'</span>')) : '<span class="stc pending">—</span>';
+      const validRank=(showST&&s.joined[i]&&st!=null&&rankOf[i]!=null)?rankOf[i]:null;   // フライング(負)も0秒への近さでランク対象
       const c4= showST&&s.joined[i] ? ('<span class="odds">'+(validRank!=null?(validRank+1)+'着':'—')+'</span>') : '';
       const winCls=(validRank!=null&&validRank<2)?'win':'';   // 上位2名を賞対象として強調
       h+=`<div class="brow ${winCls}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div>${showST?'<span class="rankbadge"><span>'+((validRank!=null?validRank+1:'-'))+'着</span></span>':''}<div class="binfo"><div class="nm"><span class="txt">${esc(nm)}</span>${(s.joined[i]?'':' ')}</div></div>${c3}${c4}</div>`;
