@@ -21,7 +21,7 @@ function baseUrl(req){
   return 'http://'+host+'/';
 }
 let clients=[], lastState=null, stateVer=0, seqN=0, inbox=[];
-const N=10;   // 全員参加型：1ラウンド10艇（9/1会議で投票枠を廃止、6→10に拡張）
+const N=11;   // 全員参加型：1ラウンド11艇（6→10→11に拡張）。※shared.jsのNと必ず一致させること
 // 進行状態のクラッシュ復旧：ディスクに保存し、起動時に復元
 const SAVE=path.join(ROOT,'kami-state.json');
 try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ const st=JSON.parse(raw);

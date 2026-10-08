@@ -81,7 +81,7 @@
     <div class="kicker">遊び方 ／ How to play</div>
     <div class="title" style="font-size:clamp(24px,6.4vw,34px)">スタートタイミングの<span style="color:var(--gold)">神</span>を決めろ</div>
     <div class="rules2">
-      <div class="r2"><span class="rn">1</span><span class="rt">大時計が<b>0になったと思うタイミング</b>で、画面を<b>タップ！</b></span></div>
+      <div class="r2"><span class="rn">1</span><span class="rt">大時計が<b>0になったと思うタイミング</b>で、<br>画面を<b>タップ！</b></span></div>
       <div class="r2"><span class="rn">2</span><span class="rt"><b>0.00秒に近い人ほど神スタート！</b></span></div>
       <div class="r2 win"><span class="rn">3</span><span class="rt">ランキング<b>上位2名様にSPプレゼント</b>🎁</span></div>
     </div>
@@ -158,9 +158,9 @@
     const order=ranking(s.results); const rows=order.filter(i=> s.joined[i] && s.results[i]!=null);
     let h=''; rows.forEach((i,r)=>{ const st=s.results[i], foul=st<0, nm=(s.names&&s.names[i])||((i+1)+'号艇');
       const stc= foul? '<span class="rst foul">'+st.toFixed(2)+'<b>F</b></span>' : '<span class="rst">'+st.toFixed(2)+'</span>';
-      h+='<div class="rrow2 '+(r<2?'win':'')+' '+(i===myBoat?'me':'')+'" style="--bc:'+COL[i].b+';--bt:'+COL[i].t+'"><span class="rk">'+(r+1)+'着</span><span class="kw"><span>'+(i+1)+'</span></span><span class="rnm">'+esc(nm)+'</span>'+stc+'</div>'; });
+      h+='<div class="rrow2 '+(r<2?'win':'')+' '+(i===myBoat?'me':'')+'" style="--bc:'+COL[i].b+';--bt:'+COL[i].t+'"><span class="rk">'+(r+1)+'位</span><span class="kw"><span>'+(i+1)+'</span></span><span class="rnm">'+esc(nm)+'</span>'+stc+'</div>'; });
     $('#rankList').innerHTML= h || '<p class="lead" style="text-align:center">まだ結果がありません</p>';
-    let ml=''; if(myBoat!=null && s.results[myBoat]!=null){ const mr=rows.indexOf(myBoat); if(mr>=0) ml='あなたは '+(mr+1)+'着'+(mr<2?'・入賞！🎁 スタッフにお声がけください':''); }
+    let ml=''; if(myBoat!=null && s.results[myBoat]!=null){ const mr=rows.indexOf(myBoat); if(mr>=0) ml='あなたは '+(mr+1)+'位'+(mr<2?'・入賞！🎁 スタッフにお声がけください':''); }
     $('#myLine').innerHTML=ml;
   }
   function onState(s){

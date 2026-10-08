@@ -34,7 +34,7 @@
   <div class="totline">参加 <b id="joinCnt">0</b>/<span id="maxCnt">11</span>　完了 <b id="resCnt">0</b>/<span id="joinCnt2">0</span></div>
   <div class="board" style="max-width:620px; width:100%">
     <div class="bhead"><span class="venue"><span class="rc"></span>Control Board</span><span class="rno"><span id="rno">R1</span></span></div>
-    <div class="colhead"><span>枠</span><span>挑戦者</span><span id="ch3">ST</span><span id="ch4">着</span></div>
+    <div class="colhead"><span>枠</span><span>挑戦者</span><span id="ch3">ST</span><span id="ch4">位</span></div>
     <div id="rows" style="max-height:44vh; overflow-y:auto"></div>
   </div>
   <div class="adminqr">
@@ -83,9 +83,9 @@
       const st=s.results[i];
       const c3= showST ? (st==null?'<span class="stc pending">—</span>':(st<0?'<span class="stc foul">'+st.toFixed(2)+' F</span>':'<span class="stc">'+st.toFixed(2)+'</span>')) : '<span class="stc pending">—</span>';
       const validRank=(showST&&s.joined[i]&&st!=null&&rankOf[i]!=null)?rankOf[i]:null;   // フライング(負)も0秒への近さでランク対象
-      const c4= showST&&s.joined[i] ? ('<span class="odds">'+(validRank!=null?(validRank+1)+'着':'—')+'</span>') : '';
+      const c4= showST&&s.joined[i] ? ('<span class="odds">'+(validRank!=null?(validRank+1)+'位':'—')+'</span>') : '';
       const winCls=(validRank!=null&&validRank<2)?'win':'';   // 上位2名を賞対象として強調
-      h+=`<div class="brow ${winCls}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div>${showST?'<span class="rankbadge"><span>'+((validRank!=null?validRank+1:'-'))+'着</span></span>':''}<div class="binfo"><div class="nm"><span class="txt">${esc(nm)}</span>${(s.joined[i]?'':' ')}</div></div>${c3}${c4}</div>`;
+      h+=`<div class="brow ${winCls}" style="--bc:${COL[i].b};--bt:${COL[i].t}"><div class="kw"><span>${i+1}</span></div>${showST?'<span class="rankbadge"><span>'+((validRank!=null?validRank+1:'-'))+'位</span></span>':''}<div class="binfo"><div class="nm"><span class="txt">${esc(nm)}</span>${(s.joined[i]?'':' ')}</div></div>${c3}${c4}</div>`;
     }
     document.getElementById('rows').innerHTML=h;
     $('#joinCnt').textContent=joinedCount(); $('#joinCnt2').textContent=joinedCount(); $('#resCnt').textContent=resCount(); $('#maxCnt').textContent=N;   // 分母はN(参加可能人数)に連動＝11人対応
