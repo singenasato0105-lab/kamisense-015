@@ -105,7 +105,7 @@ body{font-family:var(--jp); color:var(--ink); user-select:none; -webkit-font-smo
 .stage{position:relative; width:100%; max-width:360px; aspect-ratio:1/1; margin:6px auto 0;}
 .clock{position:absolute; inset:0; filter:drop-shadow(0 12px 40px rgba(0,0,0,.5)); transition:opacity .2s;}
 .clock.gone{opacity:0;}
-.cdnum{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--disp); font-size:clamp(88px,26vw,150px); line-height:1; color:transparent; background:linear-gradient(180deg,#fff,#bfe6ff); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 26px rgba(47,228,255,.5));}
+.cdnum{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--disp); font-size:clamp(88px,26vw,150px); line-height:1; color:#f4fbff; -webkit-text-fill-color:#f4fbff; text-shadow:0 0 26px rgba(47,228,255,.6),0 2px 6px rgba(0,0,0,.5);}   /* 単色化（グラデ切り抜き×filterの黒化回避） */
 .cdnum.hide{opacity:0; transition:opacity .18s;}
 .blindmsg{position:absolute; inset:0; display:none; place-items:center; align-content:center;}
 .blindmsg.on{display:grid;}
