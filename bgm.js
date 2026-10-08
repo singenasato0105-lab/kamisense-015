@@ -34,7 +34,7 @@
   function probe(cue){ const src=srcFor(cue); if(avail[src]===true) return Promise.resolve(true);
     return fetch(src,{cache:'no-store'}).then(r=>{ avail[src]=r.ok; if(r.ok) getAudio(src); return r.ok; }).catch(()=>{ avail[src]=false; return false; }); }
   function playMp3(cue,opts){ const prev=curMp3; stopLoop(); const src=srcFor(cue), a=getAudio(src); curMp3=a;
-    a.onended = (!opts.loop && cue==='fanfare') ? function(){ if(active==='fanfare') play('parade',{loop:true}); } : null;   // ファンファーレが鳴り終わったら会場BGM(parade)を再開＝無音を作らない
+    a.onended = (!opts.loop && cue==='fanfare') ? function(){ if(active==='fanfare'){ try{ a.pause(); }catch(e){} active=null; curMp3=null; } } : null;   // ファンファーレ後は無音に（発走→カウント開始までBGMを流さない。信弦さん依頼。raceは大時計スタート時に鳴る）
     try{ a.loop=!!opts.loop; a.muted=muted; try{ a.currentTime=0; }catch(e){} a.volume=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }
     catch(e){}
     fadeTo(a, muted?0:volFor(src), XFADE);                                                  // 新cueをフェードイン(正規化音量へ)
