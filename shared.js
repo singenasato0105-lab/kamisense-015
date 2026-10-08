@@ -66,12 +66,16 @@ function favIndex(votes){ const t=votes.reduce((a,b)=>a+b,0); if(!t)return -1; l
 function oddsHTML(o){ return o==null?'—':('<span class="x">×</span>'+o.toFixed(1)); }
 /* 0秒に近い順（有効ST>=0）。フライング/未挑戦は最下位 */
 function ranking(results){
-  // 0秒への近さ順（|ST|昇順）。フライング(負のST)も含めて順位を付ける＝賞品は必ず配れるように。
-  // 未押下(null)だけ最下位。同closeなら早い側(負)より遅い側? →絶対値が同じなら順不同(実質発生しない)。
+  // 順位ルール：①有効スタート(ST>=0)は0秒に近い順(昇順)で上位 ②フライング(ST<0)は有効スタートより必ず下
+  //            ③フライング同士は0秒に近い順(|ST|昇順) ④未押下(null)は最下位。
+  // 「間に合った人よりフライングが上位」を防ぐ。賞品は上位2名なので有効スタート優先で配られる(全員フライングでも配れる)。
   const idx=[...Array(N).keys()];
-  idx.sort((a,b)=>{ const na=results[a]==null, nb=results[b]==null;
-    if(na&&nb)return 0; if(na)return 1; if(nb)return -1;
-    return Math.abs(results[a])-Math.abs(results[b]); });
+  idx.sort((a,b)=>{ const ra=results[a], rb=results[b], na=ra==null, nb=rb==null;
+    if(na&&nb)return 0; if(na)return 1; if(nb)return -1;      // 未押下は最下位
+    const fa=ra<0, fb=rb<0;                                   // フライング判定
+    if(fa!==fb) return fa?1:-1;                               // フライングは有効スタートより下
+    if(fa&&fb) return Math.abs(ra)-Math.abs(rb);              // フライング同士は0秒に近い順
+    return ra-rb; });                                         // 有効スタート同士は0秒に近い順(小さいほど上位)
   return idx;
 }
 function boatSVG(cls){ return `<svg class="${cls||'boaticon'}" viewBox="0 0 92 40" preserveAspectRatio="xMidYMid meet"><g fill="rgba(255,255,255,.78)"><path d="M3,30 Q5,15 12,26 Q8,23 7,32 Z"/><path d="M9,31 Q13,13 21,27 Q15,23 13,33 Z" opacity=".82"/><circle cx="6" cy="17" r="1.7"/><circle cx="11.5" cy="12.5" r="1.4"/><circle cx="17" cy="16" r="1.5"/><circle cx="3.5" cy="24" r="1.5"/></g><path d="M16,23 l8.5,-1 l1,6.4 l-9.5,1 Z" fill="#33495a"/><path d="M20,26.5 L74,21.5 Q88,21.5 84,29 L34,31.5 Q22,31.5 20,26.5 Z" fill="#eef4f8"/><path d="M20,26.5 Q22,31.5 34,31.5 L84,29 Q85.4,30.6 81,32 L32,34 Q20.5,33.2 20,26.5 Z" fill="#adc3d2"/><path d="M40,24.6 L57,23.1 L52.5,27.4 L42.5,27.6 Z" fill="#0f1e28"/><path d="M44,24.2 Q46,13.6 51.5,14.4 Q57,15.2 56,24.4 Z" fill="var(--bc)" stroke="rgba(0,0,0,.28)" stroke-width=".6"/><circle cx="49" cy="12" r="5.1" fill="var(--bc)" stroke="rgba(0,0,0,.28)" stroke-width=".6"/><path d="M46.2,11.2 a3.3,3.3 0 0 1 5.6,0 Z" fill="rgba(0,0,0,.45)"/><g fill="rgba(255,255,255,.9)"><circle cx="84" cy="22.5" r="2.1"/><circle cx="88.4" cy="25" r="1.5"/></g></svg>`; }
