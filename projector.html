@@ -220,6 +220,7 @@
 <body>
 <div id="tv">
 <div class="brand"><span class="live">LIVE</span> ・ 神センス！スタートタイミング「0.15」チャレンジ</div>
+<button class="mute" id="fsBtn" style="right:60px" title="全画面表示（Escで解除）">⛶</button>
 <button class="mute" id="mute">🔊</button>
 <div id="dupNote" style="display:none">🔇 別の投影画面で音声を再生中（この画面をクリックすると、こちらに切替）</div>
 <div class="flash" id="flash"></div>
@@ -319,6 +320,12 @@
       else if(m.type==='hello'){ if(audioOwner && audioUnlocked && !sndOff) bcAudio('claim'); } };  // 新規画面に対し、既に鳴っている自分が名乗る
     bcAudio('hello'); }   // 起動時：既に鳴っている画面がいればclaimが返り、自分はbecomeSilent
   function playBGM(cue,opt){ if(!sndOff && audioOwner){ try{ BGM.play(cue,opt); }catch(e){} } }   // サウンドOFF中・非音源画面では鳴らさない
+  // 全画面表示（ブラウザのバー類を消す）。クリックで切替＝音声解禁も兼ねる（propagationは止めない）
+  $('#fsBtn').addEventListener('click',()=>{ try{ const el=document.documentElement;
+      if(!(document.fullscreenElement||document.webkitFullscreenElement)){ (el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen).call(el); }
+      else { (document.exitFullscreen||document.webkitExitFullscreen).call(document); }
+    }catch(x){} });
+  document.addEventListener('fullscreenchange',()=>{ const b=$('#fsBtn'); if(!b)return; const fs=!!(document.fullscreenElement||document.webkitFullscreenElement); b.textContent=fs?'🡼':'⛶'; b.title=fs?'全画面を解除（Esc）':'全画面表示（Escで解除）'; });
   $('#mute').addEventListener('click',(e)=>{ e.stopPropagation(); sndOff=!sndOff; setMuted(sndOff); try{BGM.setMute(sndOff);}catch(x){}
     $('#mute').textContent=sndOff?'🔇':'🔊'; $('#mute').title=sndOff?'サウンドOFF（クリックでON）':'サウンドON（クリックでOFF）';
     if(sndOff){ try{BGM.stop();}catch(x){} }   // 完全停止（作業中の騒音対策）
