@@ -175,7 +175,7 @@
         show('done');
       } else { show('wait'); $('#waitMsg').innerHTML='📺 ただいま大画面で<br>結果発表中！'; }
     }
-    else if(s.phase==='prize'){   // 投影の発表が済み商品プレゼントへ。ここで初めてスマホにも順位を表示
+    else if(s.phase==='rank'||s.phase==='prize'){   // 投影で順位発表（rank）以降、スマホにも順位を表示（投影のリビールより先に出さない）
       buildRank(s); show('result');
     }
   }
