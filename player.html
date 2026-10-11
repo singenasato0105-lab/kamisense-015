@@ -119,9 +119,12 @@
     try{ $('#myBadge').style.setProperty('--bc',COL[myBoat].b); $('#myBadge').style.setProperty('--bt',COL[myBoat].t); $('#myBadge').innerHTML='<span>'+(myBoat+1)+'</span>'; $('#myName').textContent=anm; }catch(e){}
     show('wait');
   }
+  // 号艇バッジ/名前の反映＋端末に記憶（リロード/再接続で自分の号艇を忘れない）
+  function setMyBadge(b,nm){ try{ $('#myBadge').style.setProperty('--bc',COL[b].b); $('#myBadge').style.setProperty('--bt',COL[b].t); $('#myBadge').innerHTML='<span>'+(b+1)+'</span>'; $('#myName').textContent=nm||((b+1)+'号艇'); }catch(e){} }
+  function saveJoin(b,nm){ try{ localStorage.setItem('kami_join', JSON.stringify({boat:b, name:nm, game:(cur&&cur.gameId)||0})); }catch(e){} }
   $('#joinBtn').addEventListener('click',()=>{ if(sel==null){ alert('号艇を選んでください'); return; } const nm=($('#nameIn').value||'').trim().slice(0,10)||('挑戦者'+String.fromCharCode(65+sel)); myBoat=sel;
     bus.post({type:'join',src:'player',boat:myBoat,name:nm}); AC();
-    $('#myBadge').style.setProperty('--bc',COL[myBoat].b); $('#myBadge').style.setProperty('--bt',COL[myBoat].t); $('#myBadge').innerHTML='<span>'+(myBoat+1)+'</span>'; $('#myName').textContent=nm;
+    setMyBadge(myBoat,nm); saveJoin(myBoat,nm);
     show('wait'); });
 
   // 大時計ローカル計測
@@ -165,6 +168,10 @@
   }
   function onState(s){
     const prev=phase; phase=s.phase;
+    // リロード/再接続で自分の号艇を忘れた場合、同じゲーム中なら端末の記憶から復元（11で入ったのに1と出る対策）
+    if(myBoat==null){ try{ const j=JSON.parse(localStorage.getItem('kami_join')||'null');
+      if(j && typeof j.boat==='number'){ if(s.gameId && j.game && j.game!==s.gameId){ localStorage.removeItem('kami_join'); }   // 別ゲーム(リセット後)の記憶は破棄
+        else if(s.joined && s.joined[j.boat]){ myBoat=j.boat; sel=j.boat; setMyBadge(myBoat, j.name); } } }catch(e){} }
     if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
     else if(s.phase==='rules'){ show('rules'); }   // 投影と同じルール説明をスマホにも
     else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
@@ -173,7 +180,8 @@
         const st=s.results[myBoat]; if(st!=null){ const g=grade(st); $('#doneVerdict').textContent=g.i+' '+g.l; $('#doneVerdict').style.color=g.c; $('#myST').innerHTML=st.toFixed(2)+'<span class="s">秒</span>'; $('#myST').style.color=(st<0?'var(--red)':'#fff'); }
         $('#doneMsg').innerHTML='📺 ただいま大画面で結果発表中！<br>順位はこのあと表示されます';
         show('done');
-      } else { show('wait'); $('#waitMsg').innerHTML='📺 ただいま大画面で<br>結果発表中！'; }
+      } else { if(myBoat==null){ try{ $('#myBadge').innerHTML=''; $('#myName').textContent=''; const wk=$('#waitK'); if(wk) wk.textContent='結果発表'; }catch(e){} }   // 未参加(観客)は偽の号艇『1』を出さない
+        show('wait'); $('#waitMsg').innerHTML='📺 ただいま大画面で<br>結果発表中！'; }
     }
     else if(s.phase==='rank'||s.phase==='prize'){   // 投影で順位発表（rank）以降、スマホにも順位を表示（投影のリビールより先に出さない）
       buildRank(s); show('result');
