@@ -313,19 +313,23 @@
   function bcAudio(type){ if(AUDCH){ try{ AUDCH.postMessage({type:type, id:MYID}); }catch(e){} } }
   function becomeSilent(){ if(!audioOwner) return; audioOwner=false; try{ BGM.setMute(true); }catch(e){} const n=$('#dupNote'); if(n) n.style.display='flex'; }
   function claimAudio(){ audioOwner=true; const n=$('#dupNote'); if(n) n.style.display='none';
-    if(!sndOff){ try{ BGM.setMute(false); }catch(e){} const p=(cur&&cur.phase)||'lobby'; playBGM(p==='countdown'?'race':'parade',{loop:true}); }
+    if(!sndOff){ try{ BGM.setMute(false); }catch(e){} resumeBGMForPhase(); }
     bcAudio('claim'); }   // 自分が音源だと全画面へ宣言（他画面はbecomeSilent）
   if(AUDCH){ AUDCH.onmessage=(ev)=>{ const m=ev.data||{}; if(!m||m.id===MYID) return;
       if(m.type==='claim'){ becomeSilent(); }                                   // 他画面が音源を主張→自分は黙る
       else if(m.type==='hello'){ if(audioOwner && audioUnlocked && !sndOff) bcAudio('claim'); } };  // 新規画面に対し、既に鳴っている自分が名乗る
     bcAudio('hello'); }   // 起動時：既に鳴っている画面がいればclaimが返り、自分はbecomeSilent
+  // 音声解禁/音源切替の時に鳴らし直す曲。すでに何か鳴っていれば触らない（発走中にクリックするとファンファーレが会場BGMに差し替わる不具合の対策）
+  function resumeBGMForPhase(){ try{ const d=BGM._debug(); if(d && d.playing && !d.playing.paused) return;   // 鳴っていれば触らない
+      if(d && d.active){ playBGM(d.active,{loop:d.active!=='fanfare'}); return; } }catch(e){}   // 自動再生がブロックされて止まっていた曲は、そのまま鳴らし直す
+    const p=(cur&&cur.phase)||'lobby'; if(p==='lobby'||p==='rules'||p==='rank'||p==='prize') playBGM('parade',{loop:true}); }   // 発走・カウント・結果発表の途中では何も鳴らし始めない
   function playBGM(cue,opt){ if(!sndOff && audioOwner){ try{ BGM.play(cue,opt); }catch(e){} } }   // サウンドOFF中・非音源画面では鳴らさない
   $('#mute').addEventListener('click',(e)=>{ e.stopPropagation(); sndOff=!sndOff; setMuted(sndOff); try{BGM.setMute(sndOff);}catch(x){}
     $('#mute').textContent=sndOff?'🔇':'🔊'; $('#mute').title=sndOff?'サウンドOFF（クリックでON）':'サウンドON（クリックでOFF）';
     if(sndOff){ try{BGM.stop();}catch(x){} }   // 完全停止（作業中の騒音対策）
     else { AC(); audioUnlocked=true; claimAudio(); } });   // ON＝この画面を音源にして再生
   function unlockAudioHere(){ AC(); audioUnlocked=true; audioOwner=true; const n=$('#dupNote'); if(n) n.style.display='none';
-    if(!sndOff){ try{ BGM.setMute(false); }catch(e){} const p=(cur&&cur.phase)||'lobby'; if(p==='countdown')playBGM('fanfare'); else playBGM('parade',{loop:true}); }
+    if(!sndOff){ try{ BGM.setMute(false); }catch(e){} resumeBGMForPhase(); }
     bcAudio('claim'); }
   document.addEventListener('click',()=>{ if(!audioUnlocked || !audioOwner) unlockAudioHere(); });   // 初回クリックで音声解禁。音源を失った画面はクリックで取り戻す（音源は常に1画面）
   $('#dupNote').addEventListener('click',(e)=>{ e.stopPropagation(); unlockAudioHere(); });   // 「こちらに切替」バッジでも切替可
