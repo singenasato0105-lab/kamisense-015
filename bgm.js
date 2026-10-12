@@ -34,7 +34,7 @@
   function probe(cue){ const src=srcFor(cue); if(avail[src]===true) return Promise.resolve(true);
     return fetch(src,{cache:'no-store'}).then(r=>{ avail[src]=r.ok; if(r.ok) getAudio(src); return r.ok; }).catch(()=>{ avail[src]=false; return false; }); }
   function playMp3(cue,opts){ const prev=curMp3; stopLoop(); const src=srcFor(cue), a=getAudio(src); curMp3=a;
-    a.onended = (!opts.loop && cue==='fanfare') ? function(){ if(active==='fanfare'){ try{ a.pause(); }catch(e){} active=null; curMp3=null; } } : null;   // ファンファーレ後は無音に（発走→カウント開始までBGMを流さない。信弦さん依頼。raceは大時計スタート時に鳴る）
+    a.onended = (!opts.loop && cue==='fanfare') ? function(){ if(active==='fanfare'){ try{ a.pause(); }catch(e){} active=null; curMp3=null; if(pending){ const q=pending; pending=null; play(q.cue,q.opts); } } } : null;   // ファンファーレ後は無音に（発走→カウント開始までBGMを流さない。信弦さん依頼。raceは大時計スタート時に鳴る）
     try{ a.loop=!!opts.loop; a.muted=muted; try{ a.currentTime=0; }catch(e){} a.volume=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }
     catch(e){}
     fadeTo(a, muted?0:volFor(src), XFADE);                                                  // 新cueをフェードイン(正規化音量へ)
@@ -100,7 +100,9 @@
   function playSynth(cue,opts){ /* 合成音は完全撤去：mp3が無いcueは無音（信弦さん指示） */ }
 
   // ================= 公開API =================
-  function play(cue,opts){ opts=opts||{}; unlocked=true;
+  let pending=null;   // ファンファーレが鳴り終わるまで待たせる次のcue
+  function playAfterFanfare(cue,opts){ if(active==='fanfare' && curMp3 && !curMp3.paused && !curMp3.ended){ pending={cue:cue,opts:opts||{}}; } else play(cue,opts); }   // ファンファーレを途中で切らない
+  function play(cue,opts){ opts=opts||{}; unlocked=true; pending=null;
     const src=srcFor(cue);
     // 同じcueが既にループ再生中なら鳴らし直さない（currentTime=0での再スタート＝プチ途切れを防ぐ。parade再遷移やrace二重呼び対策）
     if(cue===active && curMp3 && !curMp3.paused && curMp3.src.indexOf(src)>=0){ if(opts.loop) curMp3.loop=true; return; }
@@ -109,7 +111,7 @@
     if(src in avail){ fallbackParade(); return; }                                            // mp3無し確定→会場paradeで代替（無音回避・合成音は使わない）
     probe(cue).then(ok=>{ if(active!==cue) return; if(ok) playMp3(cue,opts); else fallbackParade(); });  // 未確認→確認後に本cue or 代替
   }
-  function stop(){ stopCurrent(); active=null; }
+  function stop(){ stopCurrent(); active=null; pending=null; }
   function setMute(m){ muted=!!m; if(curMp3){ try{ curMp3.muted=muted; if(!muted){ curMp3.volume=volFor(curMp3.src); } }catch(e){} } if(synGain){ try{ synGain.gain.setTargetAtTime(muted?0:1, ac().currentTime, 0.02); }catch(e){} } }
   function setVenue(v){ if(!VENUES.includes(v)||v===curVenue) return; curVenue=v; probe('parade');
     if(active==='parade') play('parade',{loop:true}); else if(active==='race') play('race',{loop:true}); }
@@ -119,6 +121,6 @@
   ['fanfare','result','close','race'].forEach(c=>probe(c));
   VENUES.forEach(v=>{ const p='bgm/'+v+'/parade.mp3'; fetch(p,{cache:'no-store'}).then(r=>{ avail[p]=r.ok; if(r.ok) getAudio(p); }).catch(()=>{avail[p]=false;}); });
 
-  window.BGM={ play, stop, setMute, setVenue, unlock, get venue(){return curVenue;}, get ready(){return true;},
+  window.BGM={ play, playAfterFanfare, stop, setMute, setVenue, unlock, get venue(){return curVenue;}, get ready(){return true;},
     _debug(){ return {venue:curVenue, active, muted, unlocked, avail:Object.assign({},avail), cached:Object.keys(A), playing: curMp3?{src:curMp3.src.split('/').slice(-2).join('/'), paused:curMp3.paused, t:Math.round((curMp3.currentTime||0)*10)/10, loop:curMp3.loop}:null }; } };
 })();
