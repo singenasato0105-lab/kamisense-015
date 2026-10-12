@@ -155,6 +155,7 @@
 
   bus.onMessage(m=>{
     if(m.type==='state'){ cur=m.s; onState(m.s); }
+    else if(m.type==='arm'){ if(myBoat!=null && cur && cur.joined[myBoat] && !done){ phase='standby'; show('wait'); $('#waitMsg').innerHTML='🚦 まもなくスタート！<br>構えて！'; } }   // 発走（ファンファーレ）＝構え。カウントスタートで大時計へ
     else if(m.type==='go'){ if(myBoat!=null && cur && cur.joined[myBoat] && !done){ phase='countdown'; goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); setTimeout(()=>{ if(phase==='countdown'&&!done)startRace(); }, Math.max(0,delay)); } }
   });
   function buildRank(s){
@@ -172,8 +173,11 @@
     if(myBoat==null){ try{ const j=JSON.parse(localStorage.getItem('kami_join')||'null');
       if(j && typeof j.boat==='number'){ if(s.gameId && j.game && j.game!==s.gameId){ localStorage.removeItem('kami_join'); }   // 別ゲーム(リセット後)の記憶は破棄
         else if(s.joined && s.joined[j.boat]){ myBoat=j.boat; sel=j.boat; setMyBadge(myBoat, j.name); } } }catch(e){} }
-    if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); } }
+    // 新ラウンドで結果がクリアされたら押下状態をリセット（これが無いと2回目以降 done=true のまま発走が無視される）
+    if(myBoat!=null && done && s.results && s.results[myBoat]==null){ done=false; pressed=false; }
+    if(s.phase==='lobby'){ if(myBoat==null){ show('join'); buildPick(); } else { show('wait'); $('#waitMsg').innerHTML='エントリー完了！<br>司会の合図でスタートします。'; } }
     else if(s.phase==='rules'){ show('rules'); }   // 投影と同じルール説明をスマホにも
+    else if(s.phase==='standby'){ /* 発走（ファンファーレ）＝構え */ if(myBoat==null){ show('join'); } else { show('wait'); $('#waitMsg').innerHTML='🚦 まもなくスタート！<br>構えて！'; } }
     else if(s.phase==='countdown'){ /* go信号で開始。未参加はwait */ if(myBoat==null) show('join'); }
     else if(s.phase==='result'){   // 投影のリビール発表中。スマホに順位はまだ出さない（投影より先にバレるのを防ぐ）。自分の結果だけ見せて大画面へ誘導
       if(myBoat!=null && done){

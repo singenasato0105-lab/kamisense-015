@@ -545,7 +545,9 @@
 
   function armClock(){ try{ running=false; cancelAnimationFrame(raf); cdnum().classList.remove('hide'); blind().classList.remove('on'); clk().classList.remove('gone'); cdnum().textContent='10'; prog().style.strokeDashoffset=RING_LEN; hand().style.transform=''; }catch(e){} }
   let goClockT=0;
-  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); } else if(m.type==='go'){ clearTimeout(goClockT); show('count'); armClock(); playBGM('fanfare'); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); startHype(delay); goClockT=setTimeout(()=>{ if(cur&&cur.phase==='countdown') startClock(); }, Math.max(0,delay)); } });   // 発走ファンファーレ中は"煽り演出"(#fanhype)→流し切ったら大時計(よーいドン)。予約は保持し、カウント以外へ移ったら発火させない（新ゲーム移動時に走行音が鳴る不具合対策）
+  bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); }
+    else if(m.type==='arm'){ clearTimeout(goClockT); show('count'); armClock(); playBGM('fanfare'); startHype(18800); }   // 発走＝ファンファーレ＋煽り演出。運営が「カウントスタート」を押すまで待機（大時計は始めない）
+    else if(m.type==='go'){ clearTimeout(goClockT); endHype(); show('count'); armClock(); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); goClockT=setTimeout(()=>{ if(cur&&cur.phase==='countdown') startClock(); }, Math.max(0,delay)); } });   // カウントスタート＝大時計(よーいドン)。ファンファーレはstandbyで既に流れている。予約はカウント以外へ移ったら発火させない
   function onState(s){
     BGM.setVenue(s.venue||'naruto');
     // LP寄せ背景＋会場キャラは ロビー・商品プレゼント で表示（発走/大時計/結果演出は専用背景のまま）
@@ -553,11 +555,12 @@
     TV.classList.toggle('lp', lp);
     ['#mascotL','#mascotC','#mascotR'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('on', lp); });
     if(s.phase!=='result') stopReveal();
-    if(s.phase!=='countdown'){ endHype(); clearTimeout(goClockT); }   // カウントダウン以外へ移ったら煽り演出を閉じ、発走予約(走行音)もキャンセル
+    if(s.phase!=='countdown' && s.phase!=='standby'){ endHype(); clearTimeout(goClockT); }   // カウント/standby(ファンファーレ)以外へ移ったら煽り演出を閉じ、発走予約(走行音)もキャンセル
     if(s.phase!=='prize') prevPrize=false;
     $('#rnoR').textContent='R'+s.round;
     if(s.phase==='lobby'){ show('lobby'); buildLobby(); }
     else if(s.phase==='rules'){ show('rules'); }
+    else if(s.phase==='standby'){ show('count'); }   // 発走（ファンファーレ）待機。演出はarmイベントで再生、ここは画面だけ合わせる
     else if(s.phase==='countdown'){ show('count'); if(!running && prevPhase!=='countdown') { /* 待機表示。go信号で開始 */ }
       const jc=s.joined.filter(Boolean).length, rc=s.results.filter((r,i)=>s.joined[i]&&r!=null).length; $('#doneCount').textContent=rc+' / '+jc+' 完了'; }
     else if(s.phase==='result'){ if(!revealing){ if(prevPhase!=='result' && prevPhase!=='' && prevPhase!=='rank' && prevPhase!=='prize'){ runReveal(s); } else { show('result'); buildResult(); } } }   // result=リビール→勝者カードで保持。rank/prizeから戻った時や初回ロードは演出を再生せず順位表を静止表示

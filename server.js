@@ -28,7 +28,7 @@ try{ const raw=fs.readFileSync(SAVE,'utf8'); if(raw&&raw.trim()){ const st=JSON.
   const ok = st&&st.s&&Array.isArray(st.s.joined)&&st.s.joined.length===N&&Array.isArray(st.s.results)&&st.s.results.length===N&&Array.isArray(st.s.names)&&st.s.names.length===N;
   if(ok){ lastState=st; stateVer=1;
     // 復元フェーズが進行中/結果(countdown/result/prize)なら、Idle再起動で"起きた瞬間に古い場面"を出さないようロビーへ戻す（進行中はサーバが稼働=再起動しないので実害なし）
-    if(lastState.s && ['countdown','result','rank','prize'].includes(lastState.s.phase)){ lastState.s.phase='lobby'; }
+    if(lastState.s && ['standby','countdown','result','rank','prize'].includes(lastState.s.phase)){ lastState.s.phase='lobby'; }
     console.log('前回の進行状態を復元しました'); }
   else console.log('保存状態が現行仕様(N='+N+')と不一致のため破棄して初期化します'); } }catch(e){}
 // 永続化はデバウンス：投票1票ごとにディスクへ書くと高負荷時に詰まるため最大1秒に1回へ束ねる。
@@ -42,7 +42,7 @@ function persist(immediate){ persistDirty=true;
 // 毎リクエストは now/seq の短い前置きだけ連結して返す（毎回の全状態stringifyを排除＝ポーリング嵐でもCPUを食わない）。
 let _stateBody=null, _stateBodyVer=-1;
 function stateBody(){ if(_stateBodyVer!==stateVer){ _stateBody=JSON.stringify(lastState); _stateBodyVer=stateVer; } return _stateBody; }
-function defaultState(v){ return {type:'state',src:'admin',s:{phase:'lobby',round:1,gameId:Date.now(),venue:v||'naruto',names:new Array(N).fill(null),joined:new Array(N).fill(false),results:new Array(N).fill(null),goSeq:0}}; }
+function defaultState(v){ return {type:'state',src:'admin',s:{phase:'lobby',round:1,gameId:Date.now(),venue:v||'naruto',names:new Array(N).fill(null),joined:new Array(N).fill(false),results:new Array(N).fill(null),goSeq:0,armSeq:0}}; }
 if(!lastState||!lastState.s){ lastState=defaultState(); stateVer=Math.max(stateVer,1); }
 // 参加者メッセージをサーバー側で集計（運営が閉じていても取りこぼさない）
 function applyParticipant(m){ const s=lastState.s; const b=m.boat;
@@ -54,7 +54,8 @@ function applyParticipant(m){ const s=lastState.s; const b=m.boat;
 function applyCmd(m){ const s=lastState.s, a=m.action;
   if(a==='venue'){ s.venue=m.value; }
   else if(a==='phase'){ s.phase=m.value; }
-  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||20500); }   // 発走ファンファーレ(実測18.83秒)を最後まで流し切ってから大時計(よーいドン)。投影の再生開始遅延(0.3〜0.6秒)＋余韻を見込んで20.5秒。ファンファーレ差替時はこの値を尺+約1.6秒に合わせる
+  else if(a==='arm'){ s.phase='standby'; s.results=new Array(N).fill(null); s.armSeq=(s.armSeq||0)+1; }   // 発走（ファンファーレ演出）。運営が「カウントスタート」を押すまで待機
+  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||2500); }   // カウントスタート：大時計(よーいドン)。ファンファーレは既にstandbyで流れているので短い間(2.5秒・同期＋よーいの間)で開始
   else if(a==='next'){ s.round=(s.round||1)+1; s.results=new Array(N).fill(null); s.phase='lobby'; }   // 次ラウンド：同メンバーのままロビーへ戻し、運営が発走。別メンバーで回すなら reset（最初から）
   else if(a==='reset'){ lastState.s=defaultState(s.venue).s; }
   return true; }

@@ -16,7 +16,7 @@ function makeBus(role){
     const bc=new BroadcastChannel(CH); let h=null; bc.onmessage=ev=>{ if(h)h(ev.data); }; setConn(true);
     return {mode:'bc', post(m){bc.postMessage(m);}, onMessage(fn){h=fn;}, serverNow(){return Date.now();}};
   }
-  let handler=null, started=false, lastV=-1, lastSeq=0, lastGo=0, offset=0, fails=0, seenState=false;
+  let handler=null, started=false, lastV=-1, lastSeq=0, lastGo=0, lastArm=0, offset=0, fails=0, seenState=false;
   let bestRtt=1e9, synced=0;   // NTP風クロック同期：RTT補正＋最小RTTのサンプルだけ採用してジッタを除去（発走ゼロの共有精度を上げる）
   // 投影/運営は速く、挑戦者(6台)は中庸、観客(数百台=群衆)は控えめ。発走同期はサーバ時刻(goAt)で合わせるためポーリング頻度に依存せず、観客を緩めても体感は変わらない＝サーバ負荷を大きく下げる。
   const POLL = role==='screen'?280 : role==='admin'?300 : role==='player'?700 : 1400;
@@ -32,10 +32,11 @@ function makeBus(role){
       fails=0; setConn(true); applyTime(d.now,t,Date.now());
       if(role==='admin'){ (d.msgs||[]).forEach(m=>{ if(m._seq>lastSeq)lastSeq=m._seq; if(handler)handler(m); }); }
       else if(d.state && d.v!==lastV){ lastV=d.v; if(handler)handler(d.state);
-        const gs=(d.state.s&&d.state.s.goSeq)||0, ph=(d.state.s&&d.state.s.phase);
-        // 発走判定：goSeqが「変化」し（reset等の減少も追従）かつ phase が countdown の時だけ発走。初回接続はcountdown中なら復元、それ以外は消化して幻の発走を出さない
-        if(!seenState){ seenState=true; lastGo=gs; if(ph==='countdown'&&handler) handler({type:'go', goAt:(d.state.s&&d.state.s.goAt)||0}); }
-        else if(gs!==lastGo){ lastGo=gs; if(ph==='countdown'&&handler) handler({type:'go', goAt:(d.state.s&&d.state.s.goAt)||0}); } }
+        const gs=(d.state.s&&d.state.s.goSeq)||0, as=(d.state.s&&d.state.s.armSeq)||0, ph=(d.state.s&&d.state.s.phase);
+        // 発走判定：goSeq変化＋phase=countdownで大時計スタート。armSeq変化＋phase=standbyでファンファーレ(発走演出)。初回接続は消化して幻の発火を出さない
+        if(!seenState){ seenState=true; lastGo=gs; lastArm=as; if(ph==='countdown'&&handler) handler({type:'go', goAt:(d.state.s&&d.state.s.goAt)||0}); }
+        else { if(gs!==lastGo){ lastGo=gs; if(ph==='countdown'&&handler) handler({type:'go', goAt:(d.state.s&&d.state.s.goAt)||0}); }
+               if(as!==lastArm){ lastArm=as; if(ph==='standby'&&handler) handler({type:'arm'}); } } }
     }).catch(()=>{ if(++fails>2)setConn(false); }).finally(()=>{ setTimeout(tick,POLL); });
   }
   return {mode:'poll',
