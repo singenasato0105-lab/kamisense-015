@@ -102,7 +102,10 @@
   // ================= 公開API =================
   let pending=null;   // ファンファーレが鳴り終わるまで待たせる次のcue
   function playAfterFanfare(cue,opts){ if(active==='fanfare' && curMp3 && !curMp3.paused && !curMp3.ended){ pending={cue:cue,opts:opts||{}}; } else play(cue,opts); }   // ファンファーレを途中で切らない
-  function play(cue,opts){ opts=opts||{}; unlocked=true; pending=null;
+  function play(cue,opts){ opts=opts||{}; unlocked=true;
+    // ファンファーレは必ず最後まで流す：再生中に来た他の曲の要求は、鳴り終わるまで保留する（止めるのは stop/ミュートだけ）
+    if(active==='fanfare' && cue!=='fanfare' && curMp3 && !curMp3.paused && !curMp3.ended){ pending={cue:cue,opts:opts}; return; }
+    pending=null;
     const src=srcFor(cue);
     // 同じcueが既にループ再生中なら鳴らし直さない（currentTime=0での再スタート＝プチ途切れを防ぐ。parade再遷移やrace二重呼び対策）
     if(cue===active && curMp3 && !curMp3.paused && curMp3.src.indexOf(src)>=0){ if(opts.loop) curMp3.loop=true; return; }

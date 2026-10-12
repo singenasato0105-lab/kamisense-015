@@ -51,6 +51,7 @@ function applyParticipant(m){ const s=lastState.s; const b=m.boat;
   if(m.type==='result'){ if(s.results[b]==null){ s.results[b]=m.st; return true; } }   // 記録だけ。結果へは運営が手動で進める（自動遷移なし）
   return false; }
 // 運営の操作コマンドを適用（フェーズ/会場/スタート/次ラウンド/リセット）
+const BOOT_V=Date.now().toString(36);
 const FANFARE_MS=20000;   // 発走ファンファーレ(18.83秒)＋再生開始の遅れ分。カウントはこれが鳴り終わるまで始めない
 function applyCmd(m){ const s=lastState.s, a=m.action;
   if(a==='venue'){ s.venue=m.value; }
@@ -65,10 +66,12 @@ function serveFile(res,file,req){
     if(err){res.writeHead(404);res.end('not found');return;}
     const ext=path.extname(file); let out=buf;
     if(ext==='.html'){ const url=baseUrl(req);
-      out=buf.toString().replace('<script src="shared.js"></script>','<script>window.APP_SSE=true;window.APP_URL='+JSON.stringify(url)+';</script>\n<script src="shared.js"></script>'); }
+      out=buf.toString().replace('<script src="shared.js"></script>','<script>window.APP_SSE=true;window.APP_URL='+JSON.stringify(url)+';</script>\n<script src="shared.js"></script>');
+      out=out.replace(/(src|href)="(shared\.js|bgm\.js|app\.css|qrcode\.min\.js)"/g,'$1="$2?v='+BOOT_V+'"'); }   // 起動ごとの版番号を付け、デプロイ後に古いスクリプトがブラウザに残らないようにする
     // HTMLはAPP_URL注入があるため毎回最新(no-store)。JS/CSSは5分、音源は1日キャッシュ＝QR一斉スキャン時の再ダウンロード負荷とバーストを抑える。
     const cache = ext==='.html' ? 'no-store'
       : (ext==='.mp3'||ext==='.ogg'||ext==='.m4a'||ext==='.wav') ? 'public, max-age=86400'
+      : (ext==='.html'||ext==='.js'||ext==='.css'||ext==='') ? 'no-cache'   // 画面とスクリプトは毎回最新を確認（古い版と新しい版が混ざって動くのを防ぐ）
       : 'public, max-age=300';
     res.writeHead(200,{'Content-Type':MIME[ext]||'text/plain','Cache-Control':cache,'Access-Control-Allow-Origin':'*'});
     res.end(out);
