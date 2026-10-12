@@ -547,7 +547,8 @@
   let goClockT=0;
   bus.onMessage(m=>{ if(m.type==='state'){ cur=m.s; onState(m.s); }
     else if(m.type==='arm'){ clearTimeout(goClockT); show('count'); armClock(); playBGM('fanfare'); startHype(18800); }   // 発走＝ファンファーレ＋煽り演出。運営が「カウントスタート」を押すまで待機（大時計は始めない）
-    else if(m.type==='go'){ clearTimeout(goClockT); endHype(); show('count'); armClock(); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); goClockT=setTimeout(()=>{ if(cur&&cur.phase==='countdown') startClock(); }, Math.max(0,delay)); } });   // カウントスタート＝大時計(よーいドン)。ファンファーレはstandbyで既に流れている。予約はカウント以外へ移ったら発火させない
+    else if(m.type==='go'){ clearTimeout(goClockT); show('count'); armClock(); goAtV=m.goAt||0; const delay=goAtV-bus.serverNow(); if(delay<3000) endHype();   // ファンファーレが残っている間は煽り演出を続け、大時計開始時に閉じる
+      goClockT=setTimeout(()=>{ if(cur&&cur.phase==='countdown') startClock(); }, Math.max(0,delay)); } });   // カウントスタート＝大時計(よーいドン)。ファンファーレはstandbyで既に流れている。予約はカウント以外へ移ったら発火させない
   function onState(s){
     BGM.setVenue(s.venue||'naruto');
     // LP寄せ背景＋会場キャラは ロビー・商品プレゼント で表示（発走/大時計/結果演出は専用背景のまま）

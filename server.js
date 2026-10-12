@@ -51,11 +51,12 @@ function applyParticipant(m){ const s=lastState.s; const b=m.boat;
   if(m.type==='result'){ if(s.results[b]==null){ s.results[b]=m.st; return true; } }   // 記録だけ。結果へは運営が手動で進める（自動遷移なし）
   return false; }
 // 運営の操作コマンドを適用（フェーズ/会場/スタート/次ラウンド/リセット）
+const FANFARE_MS=20000;   // 発走ファンファーレ(18.83秒)＋再生開始の遅れ分。カウントはこれが鳴り終わるまで始めない
 function applyCmd(m){ const s=lastState.s, a=m.action;
   if(a==='venue'){ s.venue=m.value; }
   else if(a==='phase'){ s.phase=m.value; }
-  else if(a==='arm'){ s.phase='standby'; s.results=new Array(N).fill(null); s.armSeq=(s.armSeq||0)+1; }   // 発走（ファンファーレ演出）。運営が「カウントスタート」を押すまで待機
-  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Date.now()+(+m.delay||2500); }   // カウントスタート：大時計(よーいドン)。ファンファーレは既にstandbyで流れているので短い間(2.5秒・同期＋よーいの間)で開始
+  else if(a==='arm'){ s.phase='standby'; s.results=new Array(N).fill(null); s.armSeq=(s.armSeq||0)+1; s.armAt=Date.now(); }   // 発走（ファンファーレ演出）。運営が「カウントスタート」を押すまで待機
+  else if(a==='go'){ s.phase='countdown'; s.results=new Array(N).fill(null); s.goSeq=(s.goSeq||0)+1; s.goAt=Math.max(Date.now()+(+m.delay||2500), (s.armAt||0)+FANFARE_MS); }   // カウントスタート：大時計(よーいドン)。ファンファーレは既にstandbyで流れているので短い間(2.5秒・同期＋よーいの間)で開始
   else if(a==='next'){ s.round=(s.round||1)+1; s.results=new Array(N).fill(null); s.phase='lobby'; }   // 次ラウンド：同メンバーのままロビーへ戻し、運営が発走。別メンバーで回すなら reset（最初から）
   else if(a==='reset'){ lastState.s=defaultState(s.venue).s; }
   return true; }
