@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チェスコーチAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f1ec; --panel:#ffffff; --panel2:#f8f6f2; --ink:#1e1c19; --muted:#6c675f; --line:#e3ddd2;
+  --accent:#2f6b4f; --accent-ink:#ffffff;
+  --sq-light:#eedcbc; --sq-dark:#b2865f; --coord-light:#9a7552; --coord-dark:#f3e4c8;
+  --hl-last:rgba(255,206,60,.48); --hl-sel:rgba(64,140,255,.45); --hl-check:rgba(220,40,40,.75); --hl-hint:rgba(64,170,120,.55);
+  --dot:rgba(20,30,40,.28);
+  --c-best:#1d8a4b; --c-good:#5a9b35; --c-inacc:#c39200; --c-mistake:#e0731b; --c-blunder:#d2322b; --c-ai:#5a6b7d; --c-coach:#2f6b4f;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 6px 20px rgba(0,0,0,.06);
+  --board:min(560px, calc(100vw - 32px - 26px), calc(100vh - 150px));
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141518; --panel:#1d1f23; --panel2:#24262b; --ink:#ebe9e4; --muted:#a39e95; --line:#30333a;
+    --accent:#4c9a74; --sq-light:#d9c4a0; --sq-dark:#94704f; --dot:rgba(10,15,20,.35);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141518; --panel:#1d1f23; --panel2:#24262b; --ink:#ebe9e4; --muted:#a39e95; --line:#30333a;
+  --accent:#4c9a74; --sq-light:#d9c4a0; --sq-dark:#94704f; --dot:rgba(10,15,20,.35);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,-apple-system,"Hiragino Sans",sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1120px;margin:0 auto;padding:14px 16px 4px}
+header h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+header h1 .logo{font-family:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans",serif;font-size:24px;color:var(--accent)}
+header .sub{color:var(--muted);font-size:12.5px}
+header button{white-space:nowrap;flex:none}
+.layout{max-width:1120px;margin:0 auto;padding:8px 16px 24px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+.board-col{display:flex;flex-direction:column;gap:8px;align-items:center}
+.player-tag{width:calc(var(--board) + 26px);display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:var(--muted);padding:0 2px}
+.player-tag b{color:var(--ink);font-weight:600}
+.board-wrap{display:flex;gap:8px}
+.evalbar{width:18px;height:var(--board);border-radius:4px;overflow:hidden;position:relative;background:#2b2b2b;box-shadow:var(--shadow);flex:none}
+.evalbar .white{position:absolute;left:0;right:0;bottom:0;background:#f5f5f2;transition:height .5s ease}
+.evalbar.flip .white{bottom:auto;top:0}
+.evalbar .num{position:absolute;left:0;right:0;font-size:9.5px;text-align:center;font-weight:700;z-index:2;padding:2px 0}
+.evalbar .num.top{top:0;color:#ddd}.evalbar .num.bot{bottom:0;color:#333}
+.board{width:var(--board);height:var(--board);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:6px;overflow:hidden;box-shadow:var(--shadow);position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center}
+.sq.light{background:var(--sq-light)}.sq.dark{background:var(--sq-dark)}
+.sq.last::before,.sq.sel::before,.sq.hint::before{content:"";position:absolute;inset:0}
+.sq.last::before{background:var(--hl-last)}
+.sq.sel::before{background:var(--hl-sel)}
+.sq.hint::before{background:var(--hl-hint);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.sq.check{background-image:radial-gradient(circle,var(--hl-check) 0%,rgba(220,40,40,.35) 45%,transparent 72%)}
+.sq .dot{position:absolute;width:30%;height:30%;border-radius:50%;background:var(--dot);z-index:3;pointer-events:none}
+.sq .ring{position:absolute;inset:4%;border-radius:50%;border:calc(var(--board)/110) solid var(--dot);z-index:3;pointer-events:none}
+.coord{position:absolute;font-size:calc(var(--board)/48);font-weight:700;z-index:1;pointer-events:none;line-height:1}
+.coord.f{right:4%;bottom:3%}.coord.r{left:4%;top:4%}
+.sq.light .coord{color:var(--coord-light)}.sq.dark .coord{color:var(--coord-dark)}
+.pc{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:2;font-family:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Apple Symbols",serif;font-size:calc(var(--board)/8*.78);line-height:1;pointer-events:none}
+.pc span{position:absolute;left:0;right:0;text-align:center;top:50%;transform:translateY(-52%)}
+.pc.w .fill{color:#fbfaf6}.pc.w .line{color:#26221d}
+.pc.b .fill{color:#24211d}.pc.b .line{color:#0d0c0b}
+.pc{filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.sq.dragging .pc{opacity:.3}
+.ghost{position:fixed;z-index:50;pointer-events:none;width:calc(var(--board)/8);height:calc(var(--board)/8);transform:translate(-50%,-55%) scale(1.12)}
+.arrows{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;height:calc(var(--board) + 70px);overflow:hidden}
+@media (max-width:900px){.panel{height:auto}}
+.status{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px}
+.status .spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;display:none;flex:none}
+.status.busy .spin{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status .turn{width:12px;height:12px;border-radius:50%;border:1.5px solid #888;flex:none}
+.status.busy .turn{display:none}
+.feed{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-height:180px}
+@media (max-width:900px){.feed{max-height:46vh}}
+.msg{border:1px solid var(--line);border-left:4px solid var(--c-coach);background:var(--panel2);border-radius:8px;padding:9px 12px;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}}
+.msg .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+.msg .badge{font-size:12px;font-weight:700;color:#fff;background:var(--c-coach);border-radius:999px;padding:1px 9px}
+.msg .mv{font-weight:700;font-variant-numeric:tabular-nums}
+.msg .ev{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.msg p{margin:2px 0}
+.msg ul{margin:4px 0 2px;padding-left:1.2em}
+.msg li{margin:2px 0}
+.msg .tip{margin-top:6px;padding:6px 9px;border-radius:6px;background:color-mix(in srgb,var(--c-coach) 10%,transparent);font-size:13.5px}
+.msg .line{font-size:13px;color:var(--muted)}
+.msg .acts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.msg.best{border-left-color:var(--c-best)}.msg.best .badge{background:var(--c-best)}
+.msg.good{border-left-color:var(--c-good)}.msg.good .badge{background:var(--c-good)}
+.msg.inacc{border-left-color:var(--c-inacc)}.msg.inacc .badge{background:var(--c-inacc)}
+.msg.mistake{border-left-color:var(--c-mistake)}.msg.mistake .badge{background:var(--c-mistake)}
+.msg.blunder{border-left-color:var(--c-blunder)}.msg.blunder .badge{background:var(--c-blunder)}
+.msg.ai{border-left-color:var(--c-ai)}.msg.ai .badge{background:var(--c-ai)}
+.msg.warn{border-left-color:var(--c-mistake)}
+.msg.chance{border-left-color:var(--c-best)}
+.msg.summary{border-left-color:var(--accent)}
+.sum-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0 4px}
+.sum-grid div{text-align:center;border-radius:6px;padding:4px 2px;background:var(--panel);border:1px solid var(--line);font-size:12px}
+.sum-grid b{display:block;font-size:17px}
+.acc{font-size:26px;font-weight:700;color:var(--accent)}
+.controls{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+button{font:inherit;font-size:13.5px;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;cursor:pointer;transition:background .15s,border-color .15s}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.small{font-size:12.5px;padding:4px 10px}
+.moves{border-top:1px solid var(--line);max-height:132px;overflow-y:auto;padding:8px 14px;display:grid;grid-template-columns:34px 1fr 1fr;gap:1px 6px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.moves .n{color:var(--muted)}
+.moves .m{padding:0 4px;border-radius:4px}
+.moves .m.cur{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.mk{font-weight:700;margin-left:3px}
+.mk.best{color:var(--c-best)}.mk.good{color:var(--c-good)}.mk.inacc{color:var(--c-inacc)}.mk.mistake{color:var(--c-mistake)}.mk.blunder{color:var(--c-blunder)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:20px 22px;width:min(440px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{margin:0 0 4px;font-size:18px}
+dialog .lead{color:var(--muted);font-size:13px;margin:0 0 14px}
+.field{margin:12px 0}
+.field>label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{flex:1;min-width:60px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 6px;cursor:pointer;font-size:13.5px;font-weight:500}
+.seg input:checked+label{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);font-weight:700}
+.seg input:focus-visible+label{outline:2px solid var(--accent)}
+.lvl-desc{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:1.4em}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;margin:6px 0}
+.dlg-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.promo{position:absolute;z-index:20;display:flex;flex-direction:column;background:var(--panel);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+.promo button{border:0;border-radius:0;padding:0;width:calc(var(--board)/8);height:calc(var(--board)/8);background:var(--panel)}
+.promo button:hover{background:var(--panel2)}
+.promo .pc{font-size:calc(var(--board)/8*.72)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><span class="logo">♞</span>チェスコーチAI</h1>
+    <div class="sub">一緒に指しながら、1手ごとに良し悪しとより良い手を教えます</div>
+  </div>
+  <button id="btnNew" class="primary">新しい対局</button>
+</header>
+<main class="layout">
+  <section class="board-col">
+    <div class="player-tag"><span id="tagTop"><b>AI</b></span><span id="lvlTag"></span></div>
+    <div class="board-wrap">
+      <div class="evalbar" id="evalbar"><div class="white" id="evalWhite" style="height:50%"></div><div class="num top" id="evalTop"></div><div class="num bot" id="evalBot"></div></div>
+      <div class="board" id="board"><svg class="arrows" id="arrows" viewBox="0 0 800 800"></svg></div>
+    </div>
+    <div class="player-tag"><span id="tagBot"><b>あなた</b></span><span id="capInfo"></span></div>
+  </section>
+  <section class="panel">
+    <div class="status" id="status"><span class="spin"></span><span class="turn" id="turnDot"></span><span id="statusText">準備中…</span></div>
+    <div class="feed" id="feed" aria-live="polite"></div>
+    <div class="moves" id="moves"></div>
+    <div class="controls">
+      <button id="btnUndo" title="1手戻す">↶ 待った</button>
+      <button id="btnHint" title="押すごとにヒントが詳しくなります">💡 ヒント</button>
+      <button id="btnFlip" title="盤を反転">⇅ 反転</button>
+      <button id="btnResign" title="投了">🏳 投了</button>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h2>新しい対局</h2>
+    <p class="lead">あなたが1手指すたびに、コーチが評価と改善点を伝えます。</p>
+    <div class="field"><label>あなたの色</label>
+      <div class="seg">
+        <input type="radio" name="color" id="c-w" value="w" checked><label for="c-w">♔ 白（先手）</label>
+        <input type="radio" name="color" id="c-b" value="b"><label for="c-b">♚ 黒（後手）</label>
+        <input type="radio" name="color" id="c-r" value="r"><label for="c-r">ランダム</label>
+      </div></div>
+    <div class="field"><label>AIの強さ</label>
+      <div class="seg" id="lvlSeg"></div>
+      <div class="lvl-desc" id="lvlDesc"></div></div>
+    <div class="field"><label>コーチ設定</label>
+      <label class="check"><input type="checkbox" id="optThreat" checked> 相手の狙い（取られそうな駒）を警告する</label>
+      <label class="check"><input type="checkbox" id="optChance" checked> 相手のミスで「チャンス」が来たら知らせる</label>
+    </div>
+    <div class="dlg-acts"><button value="cancel" id="dlgCancel">キャンセル</button><button value="ok" class="primary" id="dlgOk">対局開始</button></div>
+  </form>
+</dialog>
+
+<script id="engine-src" src="chess-engine.js"></script>
+<script>
+"use strict";
+/* ===================== 定数・ユーティリティ ===================== */
+const LEVELS=[
+  {name:'入門',desc:'ルールを覚えたばかりの人向け。AIもよくミスをします。',cfg:{maxDepth:1,noise:220}},
+  {name:'初級',desc:'駒の取り合いを練習したい人向け。',cfg:{maxDepth:2,noise:90}},
+  {name:'中級',desc:'基本の戦術を身につけた人向け。',cfg:{maxDepth:3,noise:30}},
+  {name:'上級',desc:'しっかり読んでくる手強い相手。',cfg:{timeMs:900}},
+  {name:'達人',desc:'全力で読みます。勝てたら本物です。',cfg:{timeMs:2200}},
+];
+const ANALYSIS_MS=700;
+const PNAME=['','ポーン','ナイト','ビショップ','ルーク','クイーン','キング'];
+const GLYPH_FILL=['','♟','♞','♝','♜','♛','♚'], GLYPH_LINE=['','♙','♘','♗','♖','♕','♔'];
+const CLS={best:{label:'★ 最善手',mk:'★'},good:{label:'✓ 好手',mk:'✓'},inacc:{label:'?! 不正確',mk:'?!'},mistake:{label:'? 悪手',mk:'?'},blunder:{label:'?? 大悪手',mk:'??'}};
+const $=id=>document.getElementById(id);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function h(tag,attrs,...kids){const e=document.createElement(tag);if(attrs)for(const k in attrs){if(k==='class')e.className=attrs[k];else if(k.startsWith('on'))e.addEventListener(k.slice(2),attrs[k]);else e.setAttribute(k,attrs[k]);}
+  for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)));}return e;}
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem('chesscoach.'+k));localStorage.setItem('chesscoach.'+k,JSON.stringify(v));}catch(e){return null;}}
+const winP=cp=>1/(1+Math.exp(-0.00368208*cp));
+const isMate=s=>Math.abs(s)>MATE-200;
+const mateIn=s=>Math.ceil((MATE-Math.abs(s))/2);
+function fmtScore(s){if(isMate(s))return (s>0?'+':'-')+'M'+mateIn(s);const v=s/100;return (v>0?'+':'')+v.toFixed(1);}
+function describeEval(s){
+  if(isMate(s))return s>0?`あなたに${mateIn(s)}手詰みがあります`:`相手に${mateIn(s)}手詰みがあります`;
+  const a=Math.abs(s),side=s>0?'あなた':'相手';
+  if(a<40)return 'ほぼ互角';if(a<120)return side+'が少し優勢';if(a<350)return side+'が優勢';return side+'が勝勢';
+}
+function pieceOn(pos,sq){const p=pos.b[sq];return p?PNAME[p&7]:'';}
+function matBal(pos,c){let s=0;for(let q=0;q<128;q++){if(q&0x88){q+=7;continue;}const p=pos.b[q];if(p&&(p&7)!==6)s+=((p>>3)===c?1:-1)*VAL[p&7];}return s;}
+function swing(pos,line,plies,c){const q=pos.clone(),base=matBal(q,c);for(let i=0;i<Math.min(plies,line.length);i++){if(!q.make(line[i]))break;}return matBal(q,c)-base;}
+function pvSan(pos,pv,n){const q=pos.clone();const out=[];for(let i=0;i<Math.min(n,pv.length);i++){const m=pv[i];if(!q.legalMoves().includes(m))break;
+  const pre=q.side===0?q.full+'. ':(i===0?q.full+'... ':'');out.push(pre+san(q,m));q.make(m);}return out.join(' ');}
+function capturedType(pos,m){const fl=mFlag(m);if(!(fl&1))return 0;if(fl&2)return 1;return pos.b[mTo(m)]&7;}
+// 駒sqが両取りしている相手の駒
+function forkTargets(pos,sq){
+  const p=pos.b[sq];if(!p)return [];const c=p>>3,t=p&7,out=[];
+  for(let s=0;s<128;s++){if(s&0x88){s+=7;continue;}const q=pos.b[s];if(!q||(q>>3)===c)continue;const qt=q&7;if(qt===1)continue;
+    if(!pos.pieceAttacks(sq,s))continue;
+    if(qt===6||VAL[qt]>VAL[t]||!pos.attackers(s,c^1).length)out.push(s);}
+  return out.length>=2?out:[];
+}
+// 色cの駒で、取られそうなもの（守りが無い/安い駒に狙われている）
+function hangingPieces(pos,c){
+  const out=[];
+  for(let s=0;s<128;s++){if(s&0x88){s+=7;continue;}const q=pos.b[s];if(!q||(q>>3)!==c)continue;const t=q&7;if(t===6)continue;
+    const att=pos.attackers(s,c^1);if(!att.length)continue;
+    const def=pos.attackers(s,c);const minAtt=Math.min(...att.map(a=>VAL[pos.b[a]&7]||1000));
+    if(!def.length||minAtt<VAL[t])out.push({sq:s,t,by:att});}
+  return out.sort((a,b)=>VAL[b.t]-VAL[a.t]);
+}
+
+/* ===================== エンジン呼び出し(Web Worker) ===================== */
+let worker=null;const pending=new Map();let reqId=0;let localChain=Promise.resolve();
+function makeWorker(){
+  try{
+    const inl=$('engine-src');const src=inl&&!inl.src&&inl.textContent.trim()?inl.textContent:null;
+    const w=src?new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'}))):new Worker('chess-engine.js');
+    w.onmessage=e=>{const p=pending.get(e.data.id);if(p){pending.delete(e.data.id);p.res(e.data);}};
+    w.onerror=e=>{e.preventDefault&&e.preventDefault();w.terminate();worker=null;const list=[...pending.values()];pending.clear();list.forEach(p=>runLocal(p.msg).then(p.res));};
+    return w;
+  }catch(e){return null;}
+}
+function runLocal(msg){localChain=localChain.then(()=>sleep(20)).then(()=>runSearch(msg));return localChain;}
+function engine(opts){
+  const msg=Object.assign({startFen:G.startFen,moves:G.moves.slice()},opts);
+  if(worker)return new Promise(res=>{const id=++reqId;msg.id=id;pending.set(id,{res,msg});worker.postMessage(msg);});
+  return runLocal(msg);
+}
+
+/* ===================== 対局状態 ===================== */
+const G={startFen:START_FEN,pos:new Pos(),moves:[],sans:[],fbs:[],user:0,level:2,flipped:false,busy:false,over:null,epoch:0,
+  pre:null,preRes:null,lastUserEval:0,selected:-1,targets:new Map(),hintStep:0,arrows:[],hintSq:-1,tipsShown:new Set(),
+  showThreat:true,showChance:true,evalWhite:0,lastActions:null};
+
+/* ===================== 盤面描画 ===================== */
+const boardEl=$('board'),arrowsEl=$('arrows');const sqEls=[];
+for(let i=0;i<64;i++){const d=h('div',{class:'sq'});boardEl.insertBefore(d,arrowsEl);sqEls.push(d);}
+function dispToSq(i){const row=i>>3,col=i&7;return G.flipped?(row*16+(7-col)):((7-row)*16+col);}
+function sqToRC(sq){const r=sq>>4,f=sq&7;return G.flipped?[r,7-f]:[7-r,f];}
+function pieceEl(p){const t=p&7,c=p>>3;return h('div',{class:'pc '+(c?'b':'w')},h('span',{class:'fill'},GLYPH_FILL[t]+'︎'),h('span',{class:'line'},GLYPH_LINE[t]+'︎'));}
+function render(){
+  const pos=G.pos,last=G.moves.length?G.moves[G.moves.length-1]:0;
+  const chk=pos.inCheck()?pos.ks[pos.side]:-1;
+  for(let i=0;i<64;i++){
+    const sq=dispToSq(i),r=sq>>4,f=sq&7,el=sqEls[i];el.dataset.sq=sq;
+    let cls='sq '+((r+f)%2?'light':'dark');
+    if(last&&(sq===mFrom(last)||sq===mTo(last)))cls+=' last';
+    if(sq===G.selected)cls+=' sel'; if(sq===chk)cls+=' check'; if(sq===G.hintSq)cls+=' hint';
+    if(drag&&drag.started&&sq===drag.sq)cls+=' dragging';
+    el.className=cls;el.replaceChildren();
+    const row=i>>3,col=i&7;
+    if(col===0)el.append(h('span',{class:'coord r'},r+1));
+    if(row===7)el.append(h('span',{class:'coord f'},'abcdefgh'[f]));
+    if(pos.b[sq])el.append(pieceEl(pos.b[sq]));
+    if(G.targets.has(sq))el.append(h('div',{class:pos.b[sq]||(mFlag(G.targets.get(sq)[0])&2)?'ring':'dot'}));
+  }
+  drawArrows();renderMoves();renderTags();
+}
+function drawArrows(){
+  const NS='http://www.w3.org/2000/svg';arrowsEl.replaceChildren();
+  const defs=document.createElementNS(NS,'defs');
+  const colors={best:'rgba(22,140,75,.85)',threat:'rgba(214,48,40,.85)',hint:'rgba(40,110,220,.85)'};
+  for(const k in colors){const mk=document.createElementNS(NS,'marker');mk.setAttribute('id','ah-'+k);mk.setAttribute('viewBox','0 0 10 10');mk.setAttribute('refX','5');mk.setAttribute('refY','5');
+    mk.setAttribute('markerWidth','3.2');mk.setAttribute('markerHeight','3.2');mk.setAttribute('orient','auto-start-reverse');
+    const pth=document.createElementNS(NS,'path');pth.setAttribute('d','M0,0 L10,5 L0,10 z');pth.setAttribute('fill',colors[k]);mk.append(pth);defs.append(mk);}
+  arrowsEl.append(defs);
+  for(const a of G.arrows){
+    const [r1,c1]=sqToRC(a.from),[r2,c2]=sqToRC(a.to);
+    const x1=c1*100+50,y1=r1*100+50,x2=c2*100+50,y2=r2*100+50,len=Math.hypot(x2-x1,y2-y1),sh=32/len;
+    const ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',x1+(x2-x1)*0.18);ln.setAttribute('y1',y1+(y2-y1)*0.18);ln.setAttribute('x2',x2-(x2-x1)*sh);ln.setAttribute('y2',y2-(y2-y1)*sh);
+    ln.setAttribute('stroke',colors[a.kind]);ln.setAttribute('stroke-width','17');ln.setAttribute('stroke-linecap','round');ln.setAttribute('marker-end','url(#ah-'+a.kind+')');
+    arrowsEl.append(ln);
+  }
+}
+function renderMoves(){
+  const el=$('moves');el.replaceChildren();
+  const startBlack=new Pos(G.startFen).side===1;let num=new Pos(G.startFen).full;
+  let i=0;
+  if(startBlack&&G.sans.length){el.append(h('span',{class:'n'},num+'.'),h('span',{class:'m'},'…'));el.append(mvCell(0));i=1;num++;}
+  for(;i<G.sans.length;i+=2){el.append(h('span',{class:'n'},num+'.'),mvCell(i));if(i+1<G.sans.length)el.append(mvCell(i+1));else el.append(h('span'));num++;}
+  el.scrollTop=el.scrollHeight;
+}
+function mvCell(i){const fb=G.fbs[i];return h('span',{class:'m'+(i===G.sans.length-1?' cur':'')},G.sans[i],fb?h('span',{class:'mk '+fb.cls},CLS[fb.cls].mk):null);}
+function renderTags(){
+  const aiC=G.user?'白':'黒',usC=G.user?'黒':'白';
+  const top=G.flipped===(G.user===1)?'ai':'me';
+  const aiTag=h('span',null,h('b',null,'AI（'+LEVELS[G.level].name+'）'),' · '+aiC), meTag=h('span',null,h('b',null,'あなた'),' · '+usC);
+  $('tagTop').replaceChildren(top==='ai'?aiTag:meTag);$('tagBot').replaceChildren(top==='ai'?meTag:aiTag);
+  const d=matBal(G.pos,G.user);$('capInfo').textContent=d?('駒の損得: '+(d>0?'+':'')+Math.round(d/100)):'';
+  $('lvlTag').textContent='';
+}
+function setEval(whiteScore){
+  G.evalWhite=whiteScore;const pct=isMate(whiteScore)?(whiteScore>0?100:0):Math.round(winP(whiteScore)*100);
+  $('evalWhite').style.height=Math.max(2,Math.min(98,pct))+'%';
+  $('evalbar').classList.toggle('flip',G.flipped);
+  const txt=fmtScore(Math.abs(whiteScore)).replace('+','');
+  const whiteBottom=!G.flipped;
+  $('evalTop').textContent='';$('evalBot').textContent='';
+  if(whiteScore>=0){(whiteBottom?$('evalBot'):$('evalTop')).textContent=txt;(whiteBottom?$('evalBot'):$('evalTop')).style.color='#333';}
+  else{(whiteBottom?$('evalTop'):$('evalBot')).textContent=txt;(whiteBottom?$('evalTop'):$('evalBot')).style.color='#ddd';}
+}
+function setStatus(text,busy){$('statusText').textContent=text;$('status').classList.toggle('busy',!!busy);
+  $('turnDot').style.background=G.pos.side?'#222':'#fafafa';updateButtons();}
+function updateButtons(){
+  const userMoves=G.fbs.filter(Boolean).length;
+  $('btnUndo').disabled=G.busy||!userMoves;$('btnHint').disabled=G.busy||!!G.over||G.pos.side!==G.user;$('btnResign').disabled=!!G.over||G.busy;
+}
+
+/* ===================== コーチのメッセージ ===================== */
+function addMsg(node){const f=$('feed');f.append(node);f.scrollTop=f.scrollHeight;return node;}
+function coachSay(text,kind,extra){return addMsg(h('div',{class:'msg '+(kind||'')},h('div',{class:'head'},h('span',{class:'badge'},kind==='warn'?'⚠ 注意':kind==='chance'?'✨ チャンス':'コーチ')),h('p',null,text),extra||null));}
+function clearLastActions(){if(G.lastActions){G.lastActions.remove();G.lastActions=null;}}
+
+/* ===================== 入力（クリック＆ドラッグ） ===================== */
+let drag=null;
+function sqFromPoint(x,y){const r=boardEl.getBoundingClientRect();if(x<r.left||y<r.top||x>=r.right||y>=r.bottom)return -1;
+  const col=Math.floor((x-r.left)/r.width*8),row=Math.floor((y-r.top)/r.height*8);return dispToSq(row*8+col);}
+function canMove(){return !G.busy&&!G.over&&G.pos.side===G.user;}
+function select(sq){G.selected=sq;G.targets=new Map();for(const m of G.pos.legalMoves())if(mFrom(m)===sq){const t=mTo(m);if(!G.targets.has(t))G.targets.set(t,[]);G.targets.get(t).push(m);}render();}
+function deselect(){G.selected=-1;G.targets=new Map();render();}
+boardEl.addEventListener('pointerdown',e=>{
+  if(!canMove()||e.button>0)return;const sq=sqFromPoint(e.clientX,e.clientY);if(sq<0)return;
+  if(G.selected>=0&&G.targets.has(sq)){tryMove(sq);return;}
+  const p=G.pos.b[sq];
+  if(p&&(p>>3)===G.user){const was=G.selected===sq;if(!was)select(sq);drag={sq,x:e.clientX,y:e.clientY,started:false,was,ghost:null};boardEl.setPointerCapture(e.pointerId);}
+  else deselect();
+});
+boardEl.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  if(!drag.started&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>5){drag.started=true;drag.ghost=h('div',{class:'ghost'},pieceEl(G.pos.b[drag.sq]));document.body.append(drag.ghost);render();}
+  if(drag.ghost){drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px';}
+});
+function endDrag(e,cancel){
+  if(!drag)return;const d=drag;drag=null;if(d.ghost)d.ghost.remove();
+  if(cancel){render();return;}
+  if(d.started){const sq=sqFromPoint(e.clientX,e.clientY);if(sq>=0&&G.targets.has(sq))tryMove(sq);else render();}
+  else if(d.was)deselect();
+}
+boardEl.addEventListener('pointerup',e=>endDrag(e,false));
+boardEl.addEventListener('pointercancel',e=>endDrag(e,true));
+function tryMove(to){
+  const cands=G.targets.get(to);if(!cands)return;
+  if(cands.length===1){commitUserMove(cands[0]);return;}
+  // 昇格の駒を選ぶ
+  const [r,c]=sqToRC(to);const box=h('div',{class:'promo'});
+  box.style.left=(c*12.5)+'%';box.style.top=(r<4?r*12.5:(r-3)*12.5)+'%';
+  for(const t of [5,4,3,2]){const m=cands.find(x=>mPromo(x)===t);box.append(h('button',{title:PNAME[t],onclick:ev=>{ev.stopPropagation();box.remove();commitUserMove(m);}},pieceEl(t|(G.user<<3))));}
+  boardEl.append(box);
+  const close=ev=>{if(!box.contains(ev.target)){box.remove();deselect();document.removeEventListener('pointerdown',close,true);}};
+  setTimeout(()=>document.addEventListener('pointerdown',close,true),0);
+}
+
+/* ===================== 対局進行 ===================== */
+function applyMove(m){
+  const s=san(G.pos,m);G.pos.make(m);G.moves.push(m);G.sans.push(s);G.fbs.push(null);
+  G.selected=-1;G.targets=new Map();G.hintSq=-1;G.hintStep=0;return s;
+}
+function statusOf(pos){
+  if(!pos.legalMoves().length)return pos.inCheck()?{type:'mate',winner:pos.side^1}:{type:'stalemate'};
+  if(pos.half>=100)return {type:'fifty'};if(pos.repCount()>=2)return {type:'repetition'};if(pos.insufficient())return {type:'material'};
+  return null;
+}
+async function commitUserMove(m){
+  const epoch=G.epoch;G.busy=true;clearLastActions();
+  const before=G.pos.clone(),idx=G.moves.length,pre=G.pre;
+  const s=applyMove(m);G.arrows=[];render();
+  setStatus('コーチが今の手を分析中…',true);
+  const preRes=await pre;if(epoch!==G.epoch)return;
+  const st=statusOf(G.pos);let post;
+  if(st)post={move:0,score:st.type==='mate'?-MATE:0,pv:[]};
+  else post=await engine({timeMs:ANALYSIS_MS});
+  if(epoch!==G.epoch)return;
+  const fb=buildFeedback(before,m,s,preRes,post,idx);G.fbs[idx]=fb;
+  G.lastUserEval=fb.played;setEval(G.user===0?fb.played:-fb.played);
+  showFeedback(fb,before,preRes,post);render();
+  if(st){endGame(st);return;}
+  await aiTurn(epoch);
+}
+async function aiTurn(epoch){
+  G.busy=true;setStatus('AIが考え中…',true);
+  const lv=LEVELS[G.level];let cfg=Object.assign({},lv.cfg);
+  if(G.moves.length<6&&!cfg.noise)cfg={maxDepth:4,noise:18};  // 序盤は少しだけ手を散らす
+  const t0=Date.now();const res=await engine(cfg);if(epoch!==G.epoch)return;
+  const wait=450-(Date.now()-t0);if(wait>0)await sleep(wait);if(epoch!==G.epoch)return;
+  const before=G.pos.clone();const m=res.move;const s=applyMove(m);render();
+  aiComment(before,m,s);
+  const st=statusOf(G.pos);if(st){G.busy=false;endGame(st);return;}
+  G.busy=false;startPre();
+}
+function startPre(){
+  const epoch=G.epoch;G.preRes=null;
+  setStatus(G.pos.inCheck()?'チェックされています！あなたの番です':'あなたの番です',false);
+  G.pre=engine({timeMs:ANALYSIS_MS});
+  G.pre.then(res=>{
+    if(epoch!==G.epoch)return;G.preRes=res;setEval(G.user===0?res.score:-res.score);
+    if(!G.showChance||G.moves.length<2)return;
+    const lastAi=G.moves.length-1;if(G.fbs[lastAi])return;
+    const gain=res.score-G.lastUserEval;
+    if(isMate(res.score)&&res.score>0&&mateIn(res.score)<=3){coachSay(`詰みがあります！${mateIn(res.score)}手で相手のキングを詰ませられます。チェックから考えてみましょう。`,'chance');}
+    else if(gain>=150&&G.lastUserEval<350&&!isMate(G.lastUserEval)){coachSay('相手の今の手はミスです！あなたに良い手があります。相手の駒の守りをよく見てみましょう。（迷ったら💡ヒント）','chance');}
+  });
+}
+function endGame(st){
+  G.over=st;G.busy=false;let text;
+  if(st.type==='mate')text=st.winner===G.user?'チェックメイト！あなたの勝ちです 🎉':'チェックメイトされました。AIの勝ちです。';
+  else if(st.type==='resign')text='投了しました。AIの勝ちです。';
+  else text={stalemate:'ステイルメイト（引き分け）です。',fifty:'50手ルールで引き分けです。',repetition:'同じ局面が3回現れたので引き分けです。',material:'駒が足りずどちらも詰ませられないため引き分けです。'}[st.type];
+  setStatus(text,false);
+  const fbs=G.fbs.filter(Boolean);const cnt={best:0,good:0,inacc:0,mistake:0,blunder:0};fbs.forEach(f=>cnt[f.cls]++);
+  const acc=fbs.length?Math.round(fbs.reduce((a,f)=>a+f.acc,0)/fbs.length):0;
+  let advice;
+  if(!fbs.length)advice='次の対局では、指すたびにコーチの解説を読んでみましょう。';
+  else if(cnt.blunder>=2)advice='大きなミスは「取られる駒がないか」を確認するだけで減らせます。指す前に、相手が次にどんな駒を取れるか1秒チェックする習慣をつけましょう。';
+  else if(cnt.mistake+cnt.blunder>=2)advice='戦術的なミスがいくつかありました。チェック・駒取り・狙い（攻撃）の順に候補手を探すと見落としが減ります。';
+  else if(acc>=85)advice='とても正確な対局でした！一段上のAIレベルに挑戦してみましょう。';
+  else advice='安定した内容でした。不正確だった局面を「待った」で振り返ると上達が早くなります。';
+  const grid=h('div',{class:'sum-grid'},...Object.keys(cnt).map(k=>h('div',null,h('b',{style:'color:var(--c-'+k+')'},cnt[k]),CLS[k].label.split(' ')[1])));
+  addMsg(h('div',{class:'msg summary'},h('div',{class:'head'},h('span',{class:'badge'},'対局のまとめ')),
+    h('p',null,text),fbs.length?h('p',null,'あなたの精度: ',h('span',{class:'acc'},acc+'%')):null,fbs.length?grid:null,h('div',{class:'tip'},'💡 '+advice),
+    h('div',{class:'acts'},h('button',{class:'small primary',onclick:openNew},'もう一局'))));
+  updateButtons();
+}
+
+/* ===================== フィードバック生成 ===================== */
+function buildFeedback(before,m,s,pre,post,idx){
+  const us=before.side,bestScore=pre.score,played=-post.score;
+  const isBest=m===pre.move;
+  const drop=isBest?0:Math.max(0,winP(bestScore)-winP(played));
+  let cls=isBest?'best':drop<0.035?'good':drop<0.08?'inacc':drop<0.15?'mistake':'blunder';
+  if(!isBest&&isMate(bestScore)&&bestScore>0&&!(isMate(played)&&played>0))cls=played>300?'inacc':'mistake';
+  if(isMate(post.score)&&post.score>0&&!(isMate(bestScore)&&bestScore<0))cls='blunder';
+  if(isMate(played)&&played>0&&isMate(bestScore)&&bestScore>0&&cls!=='best')cls=mateIn(played)<=mateIn(bestScore)+1?'good':'inacc';
+  const acc=Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*drop*100)-3.1669));
+  const after=before.clone();after.make(m);
+  const num=(us===0?before.full+'. ':before.full+'... ')+s;
+  return {cls,drop,acc,played,best:bestScore,isBest,num,san:s,m,us,before,after,pre,post,idx};
+}
+function showFeedback(fb,before,pre,post){
+  const {cls,after,us,m}=fb,from=mFrom(m),to=mTo(m),pt=before.b[from]&7,reasons=[],tips=[];
+  let main;
+  const bestSan=pre.move&&before.legalMoves().includes(pre.move)?san(before,pre.move):'';
+  const capT=capturedType(before,m);
+  // --- 良かった点 ---
+  const good=[];
+  if(after.inCheck()&&!after.legalMoves().length)good.push('チェックメイト！見事な決め手です。');
+  else{
+    if(capT)good.push(`${PNAME[capT]}を取りました。`);
+    if(mFlag(m)&4)good.push('キャスリングでキングを安全な場所に移し、ルークも活用できるようになりました。');
+    if(mPromo(m))good.push(`ポーンを${PNAME[mPromo(m)]}に昇格させました！`);
+    if(after.inCheck())good.push('チェックで相手に対応を強制しています。');
+    if(before.full<=10&&(pt===2||pt===3)&&((from>>4)===(us?7:0)))good.push('駒を展開しました。序盤は小駒（ナイト・ビショップ）を早く出すのが基本です。');
+    if(before.full<=4&&pt===1&&[3,4].includes(to&7)&&!capT)good.push('中央のポーンを進めて陣地を広げました。');
+  }
+  if(cls==='best')main=pick(['見事です！エンジンと同じ最善手です。','完璧！この局面で一番良い手です。','素晴らしい、最善手です。']);
+  else if(cls==='good')main=pick(['良い手です。','しっかりした手ですね。','悪くない選択です。']);
+  else if(cls==='inacc')main=pick(['少し不正確です。もっと良い手がありました。','悪くはないですが、より良い手がありました。']);
+  else if(cls==='mistake')main=pick(['悪手です。形勢を損ねてしまいました。','これはミスです。']);
+  else main=pick(['大悪手！大きく損をしてしまいます。','痛恨のミスです…。']);
+  if(cls==='best'||cls==='good')reasons.push(...good.slice(0,2));
+  // --- 悪かった点 ---
+  const rep=post.pv&&post.pv[0];
+  if(['inacc','mistake','blunder'].includes(cls)){
+    if(isMate(post.score)&&post.score>0){
+      reasons.push(`この手のあと、相手に${mateIn(post.score)}手で詰まされてしまいます（${pvSan(after,post.pv,mateIn(post.score)*2-1)}）。`);
+    }else if(rep&&after.legalMoves().includes(rep)){
+      const repSan=san(after,rep),rt=capturedType(after,rep),loss=-swing(after,post.pv,2,us);
+      const a2=after.clone();a2.make(rep);const fk=forkTargets(a2,mTo(rep));
+      if(rt&&loss>=150){
+        if(mTo(rep)===to)reasons.push(`動かした${PNAME[pt]}が守られていないので、相手の${repSan}で取られてしまいます。`);
+        else reasons.push(`相手に${repSan}で${sqName(mTo(rep))}の${PNAME[rt]}を取られてしまいます。`);
+      }else if(fk.length){
+        reasons.push(`相手の${repSan}で${fk.map(q=>PNAME[a2.b[q]&7]).join('と')}の両取り（フォーク）をかけられます。`);
+      }else if(a2.inCheck()&&cls!=='inacc'){
+        reasons.push(`相手の${repSan}のチェックが厳しい手になります。`);
+      }else if(cls!=='inacc'){
+        reasons.push(`相手に${repSan}という好手を与えてしまいます。`);
+      }
+    }
+    // 代わりの手
+    if(bestSan){
+      const bt=capturedType(before,pre.move),gain=swing(before,pre.pv,2,us);
+      const b2=before.clone();b2.make(pre.move);const fk=forkTargets(b2,mTo(pre.move));
+      let why='';
+      if(isMate(pre.score)&&pre.score>0)why=`${bestSan}から${mateIn(pre.score)}手で詰ませる手順がありました！`;
+      else if(bt&&gain>=150)why=`${bestSan}で${PNAME[bt]}をタダで取れました。`;
+      else if(fk.length)why=`${bestSan}で${fk.map(q=>PNAME[b2.b[q]&7]).join('と')}の両取りが狙えました。`;
+      else if(bt)why=`${bestSan}で${PNAME[bt]}を取る手が有力でした。`;
+      else if(b2.inCheck())why=`${bestSan}のチェックが有力でした。`;
+      else if(mFlag(pre.move)&4)why=`${bestSan}でキャスリングしてキングを安全にするのが良かったです。`;
+      else why=`${bestSan}の方が良い手でした。`;
+      reasons.push(why);
+    }
+  }else if(cls==='good'&&bestSan&&bestSan!==fb.san){
+    reasons.push(`最善手は${bestSan}でした。`);
+  }
+  // --- 序盤の原則 ---
+  const tip=(key,text)=>{if(!G.tipsShown.has(key)){G.tipsShown.add(key);tips.push(text);}};
+  if(!(mFlag(m)&4)){
+    if(pt===5&&before.full<=6&&!capT)tip('queen','序盤から早くクイーンを動かすと、相手の駒に追い回されて手数を損しがちです。まずはナイトとビショップを展開しましょう。');
+    if(pt===2&&((to&7)===0||(to&7)===7)&&before.full<=15)tip('rim','「端のナイトは働かない」と言われます。ナイトは中央寄りに置くと、より多くのマスを利かせられます。');
+    if(pt===6&&(before.castle&(us?12:3))&&before.full<=20)tip('king','キャスリング前にキングを動かすと、キャスリングの権利がなくなります。');
+    if(pt===1&&(from&7)===5&&(from>>4)===(us?6:1)&&before.full<=8)tip('fpawn','序盤にfポーンを動かすと、キングの前（斜めのライン）が弱くなりやすいので注意しましょう。');
+    const prevMine=fb.idx>=2?G.moves[fb.idx-2]:0;
+    if(prevMine&&mTo(prevMine)===from&&before.full<=8&&pt!==1&&!capT&&cls!=='best'&&cls!=='good')tip('twice','序盤は同じ駒を何度も動かすより、まだ動いていない駒を展開するのが基本です。');
+  }
+  if(before.full>=10&&before.full<=14&&(before.castle&(us?12:3))&&(before.ks[us]&7)===4&&!(mFlag(m)&4))tip('castle','そろそろキャスリングを考えましょう。キングが中央に残ると攻撃の的になりやすいです。');
+
+  const ev=`評価 ${fmtScore(fb.best)} → ${fmtScore(fb.played)}`;
+  const node=h('div',{class:'msg '+cls},
+    h('div',{class:'head'},h('span',{class:'badge'},CLS[cls].label),h('span',{class:'mv'},fb.num),h('span',{class:'ev',title:'あなた視点の評価値（ポーン1個=1.0）'},ev)),
+    h('p',null,main),reasons.length?h('ul',null,...reasons.map(r=>h('li',null,r))):null);
+  if(['inacc','mistake','blunder'].includes(cls)&&pre.pv&&pre.pv.length)node.append(h('div',{class:'line'},'推奨手順: '+pvSan(before,pre.pv,5)));
+  node.append(h('div',{class:'line'},'形勢: '+describeEval(fb.played)));
+  tips.forEach(t=>node.append(h('div',{class:'tip'},'💡 '+t)));
+  if(['inacc','mistake','blunder'].includes(cls)&&pre.move){
+    const acts=h('div',{class:'acts'},
+      h('button',{class:'small',onclick:()=>{G.arrows=[{from:mFrom(pre.move),to:mTo(pre.move),kind:'best'}];if(rep&&!G.over&&G.moves.length===fb.idx+1)G.arrows.push({from:mFrom(rep),to:mTo(rep),kind:'threat'});drawArrows();}},'盤上で見る'),
+      h('button',{class:'small',onclick:()=>{undo();}},'↶ この手をやり直す'));
+    node.append(acts);G.lastActions=acts;
+    if(cls!=='inacc'){G.arrows=[{from:mFrom(pre.move),to:mTo(pre.move),kind:'best'}];}
+  }
+  addMsg(node);
+}
+function aiComment(before,m,s){
+  const pt=before.b[mFrom(m)]&7,capT=capturedType(before,m),bits=[];
+  if(capT)bits.push(`${PNAME[capT]}を取りました。`);
+  if(G.pos.inCheck())bits.push(G.pos.legalMoves().length?'チェックです！キングを守りましょう（逃げる・合駒・チェックしている駒を取る）。':'');
+  const ai=G.user^1;
+  if(!G.pos.inCheck()){
+    const fk=forkTargets(G.pos,mTo(m));
+    if(fk.length)bits.push(`${PNAME[pt]}が${fk.map(q=>PNAME[G.pos.b[q]&7]).join('と')}を両取りしています！`);
+  }
+  const node=h('div',{class:'msg ai'},h('div',{class:'head'},h('span',{class:'badge'},'AI'),h('span',{class:'mv'},(ai===0?before.full+'. ':before.full+'... ')+s)),bits.filter(Boolean).length?h('p',null,bits.filter(Boolean).join(' ')):null);
+  if(G.showThreat&&!G.pos.inCheck()){
+    const hang=hangingPieces(G.pos,G.user).slice(0,2);
+    if(hang.length){node.append(h('div',{class:'tip'},'⚠ '+hang.map(x=>`${sqName(x.sq)}の${PNAME[x.t]}`).join('、')+'が狙われています。'));
+      G.arrows=hang.map(x=>({from:x.by.sort((a,b)=>VAL[G.pos.b[a]&7]-VAL[G.pos.b[b]&7])[0],to:x.sq,kind:'threat'}));drawArrows();}
+  }
+  addMsg(node);
+}
+
+/* ===================== ボタン ===================== */
+function undo(){
+  if(G.busy&&!G.over)return;if(!G.fbs.some(Boolean))return;
+  G.epoch++;clearLastActions();
+  do{G.moves.pop();G.sans.pop();G.fbs.pop();G.pos.unmake();}while(G.moves.length&&G.pos.side!==G.user);
+  G.over=null;G.busy=false;G.arrows=[];G.selected=-1;G.targets=new Map();G.hintSq=-1;G.hintStep=0;
+  const prev=G.fbs.filter(Boolean).pop();G.lastUserEval=prev?prev.played:0;
+  coachSay('待ったしました。もう一度考えてみましょう。');render();
+  if(G.pos.side!==G.user){aiTurn(G.epoch);return;}
+  startPre();
+}
+async function hint(){
+  if(!canMove())return;
+  if(!G.preRes){setStatus('コーチが考え中…',true);await G.pre;setStatus('あなたの番です',false);}
+  const r=G.preRes;if(!r||!r.move)return;
+  G.hintStep++;
+  if(G.hintStep===1){G.hintSq=mFrom(r.move);render();coachSay(`ヒント: ${sqName(mFrom(r.move))}の${pieceOn(G.pos,mFrom(r.move))}を動かす手を考えてみましょう。`);}
+  else{G.hintSq=-1;G.arrows=[{from:mFrom(r.move),to:mTo(r.move),kind:'hint'}];render();coachSay(`答え: ${san(G.pos,r.move)}（推奨手順: ${pvSan(G.pos,r.pv,4)}）`);}
+}
+let resignArmed=0;
+function resign(){if(G.over||G.busy)return;const b=$('btnResign');
+  if(!resignArmed){resignArmed=setTimeout(()=>{resignArmed=0;b.textContent='🏳 投了';},3000);b.textContent='もう一度押すと投了';return;}
+  clearTimeout(resignArmed);resignArmed=0;b.textContent='🏳 投了';G.epoch++;endGame({type:'resign'});}
+$('btnUndo').onclick=undo;$('btnHint').onclick=hint;$('btnResign').onclick=resign;
+$('btnFlip').onclick=()=>{G.flipped=!G.flipped;render();setEval(G.evalWhite);};
+
+/* ===================== 新しい対局 ===================== */
+const lvlSeg=$('lvlSeg');
+LEVELS.forEach((l,i)=>{lvlSeg.append(h('input',{type:'radio',name:'lvl',id:'lv'+i,value:i}),h('label',{for:'lv'+i},l.name));});
+function syncLvlDesc(){const v=+(document.querySelector('input[name=lvl]:checked')||{}).value||0;$('lvlDesc').textContent=LEVELS[v].desc;}
+lvlSeg.addEventListener('change',syncLvlDesc);
+function openNew(){
+  const s=store('settings')||{};
+  const c=document.querySelector(`input[name=color][value="${s.color||'w'}"]`);if(c)c.checked=true;
+  const l=$('lv'+(s.level!=null?s.level:1));if(l)l.checked=true;syncLvlDesc();
+  $('optThreat').checked=s.threat!==false;$('optChance').checked=s.chance!==false;
+  if($('dlg').showModal)$('dlg').showModal();else startGame(s);
+}
+$('dlg').addEventListener('close',()=>{
+  if($('dlg').returnValue!=='ok'){if(!G.started)startGame(store('settings')||{});return;}
+  const s={color:document.querySelector('input[name=color]:checked').value,level:+document.querySelector('input[name=lvl]:checked').value,threat:$('optThreat').checked,chance:$('optChance').checked};
+  store('settings',s);startGame(s);
+});
+$('btnNew').onclick=openNew;
+function startGame(s){
+  G.started=true;G.epoch++;clearLastActions();
+  G.user=s.color==='b'?1:s.color==='r'?(Math.random()<.5?0:1):0;G.level=s.level!=null?s.level:1;
+  G.showThreat=s.threat!==false;G.showChance=s.chance!==false;
+  G.pos=new Pos(G.startFen);G.moves=[];G.sans=[];G.fbs=[];G.over=null;G.busy=false;G.arrows=[];G.selected=-1;G.targets=new Map();
+  G.hintSq=-1;G.hintStep=0;G.tipsShown=new Set();G.lastUserEval=0;G.flipped=G.user===1;
+  $('feed').replaceChildren();
+  coachSay(`対局開始！あなたは${G.user?'黒（後手）':'白（先手）'}、AIは「${LEVELS[G.level].name}」です。あなたが1手指すたびに、その手の評価と、より良い手があればその理由を伝えます。困ったら💡ヒント、失敗したら↶待ったで何度でもやり直せます。`);
+  render();setEval(0);
+  if(G.user===1)aiTurn(G.epoch);else startPre();
+}
+worker=makeWorker();
+render();openNew();
+</script>
+</body>
+</html>
