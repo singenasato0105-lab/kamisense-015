@@ -125,8 +125,9 @@ const server=http.createServer((req,res)=>{
   if(p==='/player')p='/player.html';
   if(p==='/guide')p='/当日運営手順書.html';
   if(p==='/wall')p='/wall.html';
+  if(p==='/chess')p='/chess-coach.html';   // チェスコーチAI（単独で動く学習用ページ）
   if(p==='/healthz'){res.writeHead(200,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('ok v2-load clients='+clients.length);return;}
-  const allow=['/index.html','/admin.html','/projector.html','/player.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js'];
+  const allow=['/index.html','/admin.html','/projector.html','/player.html','/当日運営手順書.html','/wall.html','/shared.js','/app.css','/qrcode.min.js','/bgm.js','/chess-coach.html','/chess-engine.js'];
   if(allow.includes(p)){serveFile(res,p.slice(1),req);return;}
   if(/^\/bgm\/[a-z]+\/[a-z0-9_]+\.(mp3|ogg|m4a|wav)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // BGM音源
   if(/^\/img\/[a-z0-9_-]+\.(svg|png|jpg|jpeg|webp)$/i.test(p)){ serveFile(res,p.slice(1),req); return; }  // 会場キャラ等の画像
