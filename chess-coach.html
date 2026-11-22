@@ -592,7 +592,10 @@ async function hint(){
   if(G.hintStep===1){G.hintSq=mFrom(r.move);render();coachSay(`ヒント: ${sqName(mFrom(r.move))}の${pieceOn(G.pos,mFrom(r.move))}を動かす手を考えてみましょう。`);}
   else{G.hintSq=-1;G.arrows=[{from:mFrom(r.move),to:mTo(r.move),kind:'hint'}];render();coachSay(`答え: ${san(G.pos,r.move)}（推奨手順: ${pvSan(G.pos,r.pv,4)}）`);}
 }
-function resign(){if(G.over||G.busy)return;if(!confirm('投了しますか？'))return;G.epoch++;endGame({type:'resign'});}
+let resignArmed=0;
+function resign(){if(G.over||G.busy)return;const b=$('btnResign');
+  if(!resignArmed){resignArmed=setTimeout(()=>{resignArmed=0;b.textContent='🏳 投了';},3000);b.textContent='もう一度押すと投了';return;}
+  clearTimeout(resignArmed);resignArmed=0;b.textContent='🏳 投了';G.epoch++;endGame({type:'resign'});}
 $('btnUndo').onclick=undo;$('btnHint').onclick=hint;$('btnResign').onclick=resign;
 $('btnFlip').onclick=()=>{G.flipped=!G.flipped;render();setEval(G.evalWhite);};
 
